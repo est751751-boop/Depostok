@@ -13,8 +13,11 @@
     Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0" "expr=%{REQUEST_URI} =~ m#api\.php#"
 </IfModule>
 
-# storage klasörüne dışarıdan erişimi engelle
+# storage klasörüne dışarıdan erişimi engelle + HTTPS yönlendirme
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteRule ^storage/ - [F,L]
+    RewriteCond %{HTTPS} off
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 </IfModule>
