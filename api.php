@@ -61,7 +61,7 @@ try {
             $db = $store->loadOrCreate();
             foreach (($db['kullanicilar'] ?? []) as $idx => $user) {
                 $active = ($user['active'] ?? false) === true || ($user['active'] ?? '') === 'true';
-                if (($user['user'] ?? '') === $username && (string)($user['pass'] ?? '') === $password && $active) {
+                if (($user['user'] ?? '') === $username && password_verify($password, (string)($user['pass'] ?? '')) && $active) {
                     $db['kullanicilar'][$idx]['lastLogin'] = date('d.m.Y H:i');
                     $store->save($db);
                     jsonResponse([
@@ -221,10 +221,10 @@ function defaultDb(): array {
             ['id'=>3,'malKod'=>'MEK-MM-0001','malAd'=>'Makas Motoru','seriNo'=>'MM-2024-001','bakimTur'=>'Mekanik Bakım','periyot'=>6,'sonBakim'=>'2024-01-20','sorumlu'=>'Mehmet Kaya','notlar'=>'Yağlama kontrolü'],
         ],
         'kullanicilar' => [
-            ['id'=>1,'user'=>'admin','pass'=>'admin123','name'=>'Sistem Yöneticisi','role'=>'Yönetici','access'=>'Tüm Depolar','active'=>true,'lastLogin'=>''],
-            ['id'=>2,'user'=>'depo1','pass'=>'depo123','name'=>'Ahmet Yılmaz','role'=>'Depo Sorumlusu','access'=>'Ön Depo, Arka Depo','active'=>true,'lastLogin'=>''],
-            ['id'=>3,'user'=>'gorevli1','pass'=>'gorev123','name'=>'Ali Demir','role'=>'Görevli','access'=>'Tüm Depolar','active'=>true,'lastLogin'=>''],
-            ['id'=>4,'user'=>'izleyici','pass'=>'izle123','name'=>'Hasan Öz','role'=>'İzleyici','access'=>'Tüm Depolar (Salt Okunur)','active'=>true,'lastLogin'=>''],
+            ['id'=>1,'user'=>'admin','pass'=>password_hash('admin123',PASSWORD_DEFAULT),'name'=>'Sistem Yöneticisi','role'=>'Yönetici','access'=>'Tüm Depolar','active'=>true,'lastLogin'=>''],
+            ['id'=>2,'user'=>'depo1','pass'=>password_hash('depo123',PASSWORD_DEFAULT),'name'=>'Ahmet Yılmaz','role'=>'Depo Sorumlusu','access'=>'Ön Depo, Arka Depo','active'=>true,'lastLogin'=>''],
+            ['id'=>3,'user'=>'gorevli1','pass'=>password_hash('gorev123',PASSWORD_DEFAULT),'name'=>'Ali Demir','role'=>'Görevli','access'=>'Tüm Depolar','active'=>true,'lastLogin'=>''],
+            ['id'=>4,'user'=>'izleyici','pass'=>password_hash('izle123',PASSWORD_DEFAULT),'name'=>'Hasan Öz','role'=>'İzleyici','access'=>'Tüm Depolar (Salt Okunur)','active'=>true,'lastLogin'=>''],
         ],
         'log' => [],
         'personelFormu' => [
