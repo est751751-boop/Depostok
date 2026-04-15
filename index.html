@@ -1,0 +1,3267 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>TCDD Depo Yonetim Sistemi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<style>
+/* ─── TEMA DEĞİŞKENLERİ (Renkleri buradan değiştirin) ─── */
+:root{
+  --tcdd-red:#C8102E;--tcdd-dark:#0f1923;--tcdd-navy:#132240;
+  --tcdd-blue:#1a3a6b;--sidebar-w:260px;
+  --bg:#f1f4f8;--card:#ffffff;--border:#dde3ed;
+  --text:#1e2a3b;--muted:#6b7a99;--light:#e8edf7;
+  --green:#15803d;--green-bg:#dcfce7;
+  --yellow:#b45309;--yellow-bg:#fef3c7;
+  --red:#dc2626;--red-bg:#fee2e2;
+  --blue:#1d4ed8;--blue-bg:#dbeafe;
+  --shadow:0 2px 12px rgba(15,25,35,.10);
+  --radius:10px;--font:'Barlow',sans-serif;
+}
+
+/* ─── KARANLIK MOD ─── */
+body.dark-mode {
+  --bg:#0f1923;--card:#132240;--border:#1e3050;
+  --text:#e2e8f0;--muted:#94afc8;--light:#1a3a6b;
+}
+body.dark-mode .topbar{background:var(--card)}
+body.dark-mode thead th{background:#0f1923;color:#b0c4de}
+body.dark-mode tbody tr{border-bottom:1px solid #1e3050;color:#e2e8f0}
+body.dark-mode tbody td{color:#e2e8f0}
+body.dark-mode tbody td:first-child{color:#7eb8e6}
+body.dark-mode tbody tr:hover{background:#1a2e4a}
+body.dark-mode .form-control{background:#0f1923;color:#e2e8f0;border-color:#2a4060}
+body.dark-mode .form-control::placeholder{color:#5a7090}
+body.dark-mode select.form-control option{background:#0f1923;color:#e2e8f0}
+body.dark-mode .modal{background:var(--card)}
+body.dark-mode .modal-header,body.dark-mode .modal-footer{background:#0a1520}
+body.dark-mode .modal-body{background:var(--card)}
+body.dark-mode .card-header{background:#0a1520;color:#e2e8f0}
+body.dark-mode .card-title{color:#e2e8f0}
+body.dark-mode .card-body{color:#e2e8f0}
+body.dark-mode .depot-zone{background:var(--card)}
+body.dark-mode .depot-zone-title{color:#e2e8f0}
+body.dark-mode .stat-card{background:var(--card)}
+body.dark-mode .stat-label{color:#94afc8}
+body.dark-mode .stat-value{color:#e2e8f0}
+body.dark-mode .tab{color:#94afc8}
+body.dark-mode .tab.active{color:var(--tcdd-red)}
+body.dark-mode .chart-card{background:var(--card);color:#e2e8f0}
+body.dark-mode .chart-title{color:#e2e8f0}
+body.dark-mode .page-title{color:#e2e8f0}
+body.dark-mode .nav-section{color:rgba(180,200,220,.4)}
+body.dark-mode .form-group label{color:#94afc8}
+body.dark-mode .alert{color:#e2e8f0}
+body.dark-mode .alert-red{background:#3d1010;border-color:#7f1d1d;color:#fca5a5}
+body.dark-mode .alert-yellow{background:#3d2a0a;border-color:#78350f;color:#fde68a}
+body.dark-mode .alert-green{background:#0a3d1a;border-color:#166534;color:#86efac}
+body.dark-mode code{background:#0a1520;color:#7eb8e6;border:1px solid #1e3050}
+body.dark-mode .shelf-btn{background:#1a2e4a;border-color:#2a4060;color:#7eb8e6}
+body.dark-mode .shelf-btn:hover{background:var(--tcdd-blue);color:#fff}
+body.dark-mode .modal-title{color:#e2e8f0}
+body.dark-mode .modal-close{color:#94afc8}
+body.dark-mode .btn-secondary{background:#1a2e4a;color:#e2e8f0;border-color:#2a4060}
+body.dark-mode .btn-secondary:hover{background:#243c5a}
+body.dark-mode small{color:#94afc8}
+body.dark-mode .sync-indicator{color:#94afc8;background:#0f1923}
+body.dark-mode .media-upload-area{background:#0f1923;border-color:#2a4060;color:#94afc8}
+
+/* ─── GENEL SIFIRLAMA ─── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;overflow:hidden}
+input,select,textarea,button{touch-action:manipulation} /* 300ms tıklama gecikmesini önle */
+
+/* ─── GİRİŞ EKRANI ─── */
+#loginScreen{position:fixed;inset:0;z-index:9999;background:var(--tcdd-dark);display:flex;align-items:center;justify-content:center;flex-direction:column}
+#loginScreen.hidden{display:none}
+.login-card{background:var(--tcdd-navy);border:1px solid rgba(200,16,46,.4);border-radius:16px;padding:28px 44px 36px;width:400px;max-width:92vw;box-shadow:0 0 60px rgba(200,16,46,.2)}
+.login-logo{text-align:center;margin-bottom:32px}
+.login-logo svg{width:130px;height:auto;display:block;margin:0 auto}
+.login-title{font-family:'Barlow Condensed',sans-serif;font-size:12pt;font-weight:700;color:#fff;text-align:center;letter-spacing:.5px;margin-bottom:4px}
+.login-subtitle{color:rgba(255,255,255,.45);text-align:center;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:28px;line-height:1.6}
+.login-field{margin-bottom:18px}
+.login-field label{display:block;color:rgba(255,255,255,.6);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.login-field input{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:12px 16px;color:#fff;font-family:var(--font);font-size:14px;outline:none;transition:.2s}
+.login-field input:focus{border-color:var(--tcdd-red);background:rgba(200,16,46,.08)}
+.login-btn{width:100%;background:var(--tcdd-red);border:none;border-radius:8px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;padding:14px;cursor:pointer;transition:.2s;margin-top:8px}
+.login-btn:hover{background:#a00c24;transform:translateY(-1px)}
+.login-error{color:#ff6b6b;font-size:12px;text-align:center;margin-top:12px;display:none}
+
+/* ─── UYGULAMA LAYOUT ─── */
+#app{display:none;height:100vh;overflow:hidden}
+#app.visible{display:flex}
+
+/* ─── SIDEBAR (Açılıp Kapanabilir) ─── */
+.sidebar{width:var(--sidebar-w);background:var(--tcdd-dark);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;transition:margin-left .3s ease, width .3s ease;z-index:100}
+.sidebar.collapsed{margin-left:calc(-1 * var(--sidebar-w))}
+.sidebar-brand{padding:18px 18px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-brand-logo{display:flex;align-items:center;gap:12px}
+.brand-icon{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.brand-icon svg{width:100%;height:100%}
+.brand-text{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:#fff;line-height:1.2}
+.brand-text span{display:block;font-size:10px;font-weight:400;color:rgba(255,255,255,.4);letter-spacing:.5px;text-transform:uppercase}
+.sidebar-user{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:var(--tcdd-blue);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0}
+.user-info{flex:1;min-width:0}
+.user-name{color:#fff;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-role{color:rgba(255,255,255,.4);font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.sidebar-nav{padding:12px 0;flex:1;overflow-y:auto}
+.nav-section{font-size:10px;font-weight:700;color:rgba(255,255,255,.25);letter-spacing:1.5px;text-transform:uppercase;padding:8px 18px 6px;margin-top:6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 18px;cursor:pointer;color:rgba(255,255,255,.55);font-size:13px;font-weight:500;border-left:3px solid transparent;transition:.15s;text-decoration:none;white-space:nowrap;min-height:44px}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,.05)}
+.nav-item.active{color:#fff;background:rgba(200,16,46,.18);border-left-color:var(--tcdd-red)}
+.nav-item .nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--tcdd-red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px}
+.sidebar-footer{padding:14px 18px;border-top:1px solid rgba(255,255,255,.08)}
+.logout-btn{width:100%;background:rgba(200,16,46,.15);border:1px solid rgba(200,16,46,.3);border-radius:8px;color:rgba(255,255,255,.7);font-family:var(--font);font-size:12px;font-weight:600;padding:11px;cursor:pointer;transition:.2s}
+.logout-btn:hover{background:rgba(200,16,46,.3);color:#fff}
+
+/* ─── SIDEBAR TOGGLE BUTONU ─── */
+.sidebar-toggle{background:none;border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px;cursor:pointer;font-size:16px;transition:.2s;line-height:1}
+.sidebar-toggle:hover{background:var(--light)}
+
+/* ─── ANA İÇERİK ─── */
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-width:0}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:10}
+.page-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:.3px}
+.topbar-actions{display:flex;gap:8px;align-items:center}
+.content{padding:20px;flex:1;overflow-y:auto}
+.dark-toggle{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);padding:5px 10px;cursor:pointer;font-size:13px;transition:.2s}
+.dark-toggle:hover{background:var(--light);color:var(--text)}
+
+/* ─── GÖRÜNÜMLER ─── */
+.view{display:none}
+.view.active{display:block}
+
+/* ─── İSTATİSTİK KARTLARI ─── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;position:relative;overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.stat-card:hover{transform:translateY(-3px);box-shadow:0 6px 24px rgba(15,25,35,.18)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent-color,var(--tcdd-red))}
+.stat-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.stat-value{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;line-height:1;color:var(--text)}
+.stat-unit{font-size:13px;font-weight:400;color:var(--muted);margin-left:4px}
+.stat-icon{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:28px;opacity:.12}
+
+/* ─── KART ─── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:18px}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:#fafbfd;flex-wrap:wrap;gap:8px}
+.card-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:.3px}
+.card-body{padding:18px}
+
+/* ─── TABLO ─── */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:#f6f8fb;padding:10px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:1}
+tbody tr{border-bottom:1px solid var(--border);transition:.15s}
+tbody tr:hover{background:#f9fafc}
+tbody td{padding:9px 12px;vertical-align:middle;font-size:12px}
+tbody td:first-child{font-weight:600;color:var(--tcdd-blue)}
+
+/* ─── BADGE / ETİKET ─── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-yellow{background:var(--yellow-bg);color:var(--yellow)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-blue{background:var(--blue-bg);color:var(--blue)}
+.badge-gray{background:#f1f5f9;color:#64748b}
+
+/* ─── BUTONLAR ─── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:7px;border:none;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn-primary{background:var(--tcdd-red);color:#fff}
+.btn-primary:hover{background:#a00c24}
+.btn-secondary{background:#f1f5f9;color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{background:#e2e8f0}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-success{background:#15803d;color:#fff}
+.btn-success:hover{background:#166534}
+.btn-danger{background:#dc2626;color:#fff}
+.btn-danger:hover{background:#b91c1c}
+.btn-icon{width:30px;height:30px;padding:0;justify-content:center;font-size:15px}
+.scan-btn{background:linear-gradient(135deg,#1a3a6b,#132240);color:#fff;border:1px solid rgba(200,16,46,.4)}
+.scan-btn:hover{background:linear-gradient(135deg,#132240,#0f1923);border-color:var(--tcdd-red)}
+
+/* ─── FORM ─── */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.form-group label.required::after{content:' *';color:var(--tcdd-red)}
+.form-control{border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-family:var(--font);font-size:13px;color:var(--text);outline:none;background:#fff;transition:.15s;width:100%;min-height:42px}
+.form-control:focus{border-color:var(--tcdd-blue);box-shadow:0 0 0 3px rgba(26,58,107,.1)}
+.form-control.error{border-color:var(--red)}
+select.form-control{cursor:pointer}
+textarea.form-control{resize:vertical;min-height:60px}
+
+/* ─── MODAL ─── */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,25,35,.6);z-index:1000;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.3);width:100%;max-width:720px;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--card);z-index:1}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);line-height:1;padding:4px}
+.modal-body{padding:20px}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;background:#fafbfd}
+
+/* ─── UYARILAR ─── */
+.alert{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:10px}
+.alert-red{background:var(--red-bg);border:1px solid #fca5a5;color:#991b1b}
+.alert-yellow{background:var(--yellow-bg);border:1px solid #fde68a;color:#92400e}
+.alert-green{background:var(--green-bg);border:1px solid #86efac;color:#166534}
+
+/* ─── ARAMA ─── */
+.search-bar{display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+/* ─── ARAMA FİLTRE SELECT (Responsive) ─── */
+.search-filter-sel{width:160px;min-width:120px;flex-shrink:0}
+
+.search-input{flex:1;max-width:260px;min-width:140px}
+
+/* ─── SEKMELER ─── */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px}
+.tab{padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:.15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--tcdd-red);border-bottom-color:var(--tcdd-red)}
+
+/* ─── DEPO HARİTASI ─── */
+.depot-map{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:20px}
+.depot-zone{border:1px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;transition:.2s;background:var(--card)}
+.depot-zone:hover{border-color:var(--tcdd-red);transform:translateY(-2px);box-shadow:var(--shadow)}
+.depot-zone-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.depot-zone-title{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700}
+.depot-shelves{display:flex;flex-wrap:wrap;gap:5px}
+.shelf-btn{padding:4px 10px;border-radius:6px;background:var(--light);border:1px solid var(--border);font-size:11px;font-weight:600;cursor:pointer;transition:.15s;color:var(--tcdd-blue)}
+.shelf-btn:hover{background:var(--tcdd-blue);color:#fff;border-color:var(--tcdd-blue)}
+
+/* ─── GRAFİK KARTI ─── */
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:18px}
+.chart-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;margin-bottom:14px}
+
+/* ─── İLERLEME ÇUBUĞU ─── */
+.progress{height:6px;background:var(--light);border-radius:3px;overflow:hidden}
+.progress-bar{height:100%;border-radius:3px;transition:width .3s}
+
+/* ─── BARKOD / QR ─── */
+#scanReader{width:100%;max-width:400px;margin:0 auto}
+#scanReader video{border-radius:10px!important}
+.scan-result-card{background:linear-gradient(135deg,var(--green-bg),#f0fdf4);border:1px solid #86efac;border-radius:10px;padding:14px;margin-top:10px}
+.qr-display{display:flex;flex-direction:column;align-items:center;gap:10px;padding:14px}
+.qr-display canvas,.qr-display svg,.qr-display img{border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.1)}
+.barcode-container{text-align:center;margin-top:10px}
+.barcode-container svg{max-width:100%}
+
+/* ─── TOAST BİLDİRİM ─── */
+#toast{position:fixed;bottom:20px;right:20px;z-index:9000;display:flex;flex-direction:column;gap:6px;pointer-events:none;max-width:320px}
+.toast-item{background:var(--tcdd-dark);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.3);animation:toastIn .25s ease;border-left:3px solid var(--tcdd-red);word-break:break-word}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* ─── FOTOĞRAF / VİDEO YÜKLEME ─── */
+.media-upload-area{border:2px dashed var(--border);border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:.2s;background:var(--light)}
+.media-upload-area:hover{border-color:var(--tcdd-blue);background:var(--blue-bg)}
+.media-preview{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.media-preview-item{position:relative;width:80px;height:80px;border-radius:6px;overflow:hidden;border:1px solid var(--border)}
+.media-preview-item img,.media-preview-item video{width:100%;height:100%;object-fit:cover}
+.media-preview-item .remove-media{position:absolute;top:2px;right:2px;background:rgba(220,38,38,.9);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* ─── FİLTRE SATIRI ─── */
+.filter-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+
+/* ─── SENKRON DURUMU ─── */
+.sync-indicator{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--muted);padding:2px 8px;border-radius:10px;background:var(--light)}
+.sync-indicator.syncing{color:var(--yellow);animation:syncPulse 1s infinite}
+.sync-indicator.synced{color:var(--green)}
+.sync-indicator.error{color:var(--red)}
+@keyframes syncPulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ═══ MOBİL UYUMLULUK ═══ */
+@media(max-width:1100px){
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+  .depot-map{grid-template-columns:1fr}
+}
+@media(max-width:768px){
+  :root{--sidebar-w:240px}
+  .sidebar{position:fixed;top:0;left:0;bottom:0;z-index:200}
+  .sidebar.collapsed{margin-left:calc(-1 * var(--sidebar-w))}
+  .sidebar-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199;display:none}
+  .sidebar-overlay.show{display:block}
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .form-grid{grid-template-columns:1fr}
+  .content{padding:12px}
+  .topbar{padding:0 12px;height:48px}
+  .page-title{font-size:14px}
+  /* Arama çubuğu - mobilde dikey, tam genişlik */
+  .search-bar{flex-direction:column;align-items:stretch;gap:6px}
+  .search-bar .form-control,.search-bar select{width:100%!important;max-width:100%!important;min-width:0!important}
+  .search-input{max-width:100%}
+  .filter-row{flex-direction:column;align-items:stretch}
+  .filter-row .form-control,.filter-row select{width:100%!important}
+  /* Kart iyileştirmeleri */
+  .card-header{padding:10px 12px;flex-wrap:wrap;gap:6px}
+  .card-body{padding:12px}
+  /* Buton dokunma alanı (min 44px) */
+  .btn{padding:10px 14px;font-size:12px;min-height:40px}
+  .btn-sm{padding:8px 10px;min-height:36px}
+  .btn-icon{width:36px;height:36px}
+  /* Modal */
+  .modal{max-width:95vw;margin:8px}
+  .modal-overlay{padding:8px;align-items:flex-end}
+  .modal{border-radius:16px 16px 0 0;max-height:92vh}
+  /* Giriş ekranı */
+  .login-card{padding:24px 20px;width:92vw}
+  /* Tablo */
+  table{font-size:11px}
+  thead th{padding:8px 6px;font-size:10px;white-space:nowrap}
+  tbody td{padding:7px 6px;font-size:11px}
+  /* Inline 2-kolon grid'leri tek kolona düşür */
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+  div[style*="grid-template-columns:repeat(2,1fr)"]{grid-template-columns:1fr!important}
+  div[style*="grid-template-columns:repeat(3,1fr)"]{grid-template-columns:1fr 1fr!important}
+  #view-barkod > div:first-child{grid-template-columns:1fr!important}
+  #view-barkod > div:last-child{grid-template-columns:1fr!important}
+  /* Stat */
+  .stat-value{font-size:28px}
+  /* Barkod sayfası tarayıcı */
+  #scanReader{max-width:100%}
+  /* Tablolar için yatay kaydırma */
+  .table-wrap{-webkit-overflow-scrolling:touch;overflow-x:auto}
+}
+@media(max-width:480px){
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .stat-card{padding:12px}
+  .stat-value{font-size:22px}
+  .topbar-actions .btn span.hide-mobile{display:none}
+  .form-grid{grid-template-columns:1fr!important}
+  .card-header{flex-direction:column;align-items:flex-start}
+  /* Tüm inline 2-kolon grid tek kolona */
+  div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr!important}
+  div[style*="grid-template-columns:repeat(3,1fr)"]{grid-template-columns:1fr!important}
+  /* Barkod sayfası QR+Barkod yan yana kaldırsın ama küçülsün */
+  .qr-display canvas,.qr-display img{width:120px!important;height:120px!important}
+}
+</style>
+</head>
+<body>
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo" style="margin-bottom:18px">
+      <div class="login-title" style="font-size:12pt;margin-bottom:4px">TÜRKİYE CUMHURİYETİ DEVLET DEMİRYOLLARI</div>
+    </div>
+    <div class="login-title" style="font-size:14pt">Depo Yönetim Sistemi</div>
+    <div class="login-subtitle">Tavşanlı Sinyalizasyon ve Haberleşme<br>Bakım Şefliği</div>
+    <div class="login-field">
+      <label>Kullanıcı Adı</label>
+      <input type="text" id="loginUser" placeholder="Kullanıcı adınızı girin" autocomplete="username"/>
+    </div>
+    <div class="login-field">
+      <label>Şifre</label>
+      <input type="password" id="loginPass" placeholder="Şifrenizi girin" autocomplete="current-password"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">🔑 GİRİŞ YAP</button>
+    <div class="login-error" id="loginError">❌ Hatalı kullanıcı adı veya şifre</div>
+  </div>
+</div>
+<!-- Mobil sidebar overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<div id="app">
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-brand-logo">
+      <div class="brand-icon">
+        <svg viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg">
+          <rect width="38" height="38" rx="8" fill="#C8102E"/>
+          <circle cx="16" cy="19" r="7" fill="#FFF"/>
+          <circle cx="18" cy="19" r="5.5" fill="#C8102E"/>
+          <polygon points="26,19 23.5,20.8 24.3,18 22,16.2 24.8,16.1 26,13.5 27.2,16.1 30,16.2 27.7,18 28.5,20.8" fill="#FFF" transform="scale(0.7) translate(9,8)"/>
+        </svg>
+      </div>
+      <div class="brand-text">TCDD Tavsanli<span>Depo Yonetim Sistemi</span></div>
+    </div>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-avatar" id="sidebarAvatar">A</div>
+    <div class="user-info">
+      <div class="user-name" id="sidebarName">Kullanici</div>
+      <div class="user-role" id="sidebarRole">Rol</div>
+    </div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section">Ana</div>
+    <div class="nav-item active" onclick="navigate('dashboard')" data-page="dashboard">
+      <span class="nav-icon">&#128202;</span> Gosterge Paneli
+    </div>
+    <div class="nav-section">Stok Yonetimi</div>
+    <div class="nav-item" onclick="navigate('envanter')" data-page="envanter">
+      <span class="nav-icon">&#128230;</span> Envanter
+    </div>
+    <div class="nav-item" onclick="navigate('hareketler')" data-page="hareketler">
+      <span class="nav-icon">&#128203;</span> Hareketler
+    </div>
+    <div class="nav-item" onclick="navigate('depoharita')" data-page="depoharita">
+      <span class="nav-icon">&#128506;</span> Depo Haritasi
+    </div>
+    <div class="nav-section">Ekipman</div>
+    <div class="nav-item" onclick="navigate('serino')" data-page="serino">
+      <span class="nav-icon">&#128290;</span> Seri No Takibi
+    </div>
+    <div class="nav-item" onclick="navigate('arizali')" data-page="arizali">
+      <span class="nav-icon">&#128295;</span> Arizali - Tamirde
+      <span class="nav-badge" id="arBadge">0</span>
+    </div>
+    <div class="nav-item" onclick="navigate('kalibrasyon')" data-page="kalibrasyon">
+      <span class="nav-icon">&#128197;</span> Kalibrasyon / Bakim
+      <span class="nav-badge" id="kalBadge">0</span>
+    </div>
+    <div class="nav-section">Araclar</div>
+    <div class="nav-item" onclick="navigate('barkod')" data-page="barkod">
+      <span class="nav-icon">&#128247;</span> Barkod / QR Tarayici
+    </div>
+    <div class="nav-item" onclick="navigate('grafikler')" data-page="grafikler">
+      <span class="nav-icon">&#128200;</span> Grafikler
+    </div>
+    <div class="nav-section">Personel</div>
+    <div class="nav-item" onclick="navigate('personelformu')" data-page="personelformu">
+      <span class="nav-icon">&#128221;</span> Personel Formu
+    </div>
+    <div class="nav-section" id="adminNavSection">Yonetim</div>
+    <div class="nav-item" id="usersNav" onclick="navigate('kullanicilar')" data-page="kullanicilar">
+      <span class="nav-icon">&#128101;</span> Kullanicilar
+    </div>
+    <div class="nav-item" onclick="navigate('ayarlar')" data-page="ayarlar">
+      <span class="nav-icon">&#9881;</span> Ayarlar
+    </div>
+    <div class="nav-item" onclick="navigate('log')" data-page="log">
+      <span class="nav-icon">&#128220;</span> Islem Kaydi
+    </div>
+    <div class="nav-item" onclick="navigate('yedekleme')" data-page="yedekleme">
+      <span class="nav-icon">&#128190;</span> Yedekleme
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="sync-indicator" id="syncStatus" title="Senkronizasyon">
+      <span>&#9679;</span> <span id="syncText">Hazir</span>
+    </div>
+    <button class="logout-btn" onclick="doLogout()" style="margin-top:8px">Cikis Yap</button>
+  </div>
+</div>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="sidebar-toggle" onclick="toggleSidebar()" title="Menu">&#9776;</button>
+        <div class="page-title" id="pageTitle">Gosterge Paneli</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="dark-toggle" onclick="toggleDarkMode()" id="darkToggle">&#127769;</button>
+      </div>
+    </div>
+    <div class="content">
+<!-- ════════ GÖSTERGE PANELİ (Dashboard) ════════ -->
+<div id="view-dashboard" class="view active">
+  <div class="stat-grid">
+    <div class="stat-card" style="--accent-color:#1d4ed8" onclick="navigate('envanter')" title="Envanter listesine git">
+      <div class="stat-label">Toplam Malzeme</div>
+      <div class="stat-value" id="s-total">0<span class="stat-unit">çeşit</span></div>
+      <div class="stat-icon">📦</div>
+    </div>
+    <div class="stat-card" style="--accent-color:#dc2626" onclick="navigateWithFilter('envanter','KRITIK_TUKENDI')" title="Kritik stok listesi">
+      <div class="stat-label">Kritik / Tükenen</div>
+      <div class="stat-value" id="s-kritik">0<span class="stat-unit">kalem</span></div>
+      <div class="stat-icon">🔴</div>
+    </div>
+    <div class="stat-card" style="--accent-color:#d97706" onclick="navigate('arizali')" title="Arızalı ekipman">
+      <div class="stat-label">Arızalı / Tamirde</div>
+      <div class="stat-value" id="s-arizali">0<span class="stat-unit">parça</span></div>
+      <div class="stat-icon">🔧</div>
+    </div>
+    <div class="stat-card" style="--accent-color:#dc2626" onclick="navigateWithFilter('kalibrasyon','Gecikmiş')" title="Gecikmiş bakımlar">
+      <div class="stat-label">Gecikmiş Bakım</div>
+      <div class="stat-value" id="s-bakim">0<span class="stat-unit">cihaz</span></div>
+      <div class="stat-icon">📅</div>
+    </div>
+  </div>
+
+  <!-- Dashboard'da grafik yok - grafikler menüden açılır -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card">
+      <div class="card-header"><span class="card-title">⚠️ Kritik Stok Uyarıları</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Malzeme</th><th>Stok</th><th>Min</th><th>Durum</th></tr></thead>
+        <tbody id="tbl-kritik"></tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">🕐 Son 7 Hareket</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Tarih</th><th>Malzeme</th><th>Tür</th><th>Miktar</th></tr></thead>
+        <tbody id="tbl-sonhareket"></tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">🔧 Tamirdeki Ekipmanlar</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Seri No</th><th>Malzeme</th><th>Durum</th><th>Gün</th></tr></thead>
+        <tbody id="tbl-tamirde"></tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">📅 Yaklaşan Bakımlar</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Malzeme</th><th>Bakım Türü</th><th>Tarih</th><th>Durum</th></tr></thead>
+        <tbody id="tbl-yaklasan"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ ENVANTER LİSTESİ ════════ -->
+<div id="view-envanter" class="view">
+  <div class="search-bar">
+    <input type="text" class="form-control search-input" placeholder="🔍 Malzeme kodu, adı, seri no, model..." id="envSearch" oninput="renderEnvanter()">
+    <select class="form-control" class="form-control search-filter-sel" id="envKatFilter" onchange="renderEnvanter()"><option value="">Tüm Kategoriler</option></select>
+    <select class="form-control" class="form-control search-filter-sel" id="envDurumFilter" onchange="renderEnvanter()">
+      <option value="">Tüm Durumlar</option>
+      <option value="YETERLİ">✅ Yeterli</option>
+      <option value="KRİTİK">⚠️ Kritik</option>
+      <option value="TÜKENDİ">⛔ Tükendi</option>
+      <option value="KRITIK_TUKENDI" style="display:none">Kritik + Tükendi</option>
+    </select>
+    <button class="btn btn-primary" onclick="openEnvanterModal()">＋ Yeni Malzeme</button>
+    <button class="btn scan-btn btn-sm" onclick="startScan('envanter')">📷 Tara</button>
+    <button class="btn btn-secondary" onclick="exportTable('envanter')">📥 Excel</button>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📦 Envanter Listesi</span>
+      <span id="envCount" style="font-size:12px;color:var(--muted)">0 malzeme</span>
+    </div>
+    <div class="table-wrap"><table id="envTable">
+      <thead><tr>
+        <th>Kod</th><th>Malzeme Adı</th><th>Kategori</th><th>Konum</th><th>Birim</th>
+        <th>Min</th><th>Max</th><th>Stok</th><th>Durum</th><th>Kritiklik</th><th>Seri No Sayısı</th><th>İşlem</th>
+      </tr></thead>
+      <tbody id="envBody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════════ HAREKETLER ════════ -->
+<div id="view-hareketler" class="view">
+  <div class="search-bar">
+    <input type="text" class="form-control search-input" placeholder="🔍 Malzeme, belge no, personel, alan kişi..." id="harSearch" oninput="renderHareketler()">
+    <select class="form-control" class="form-control search-filter-sel" id="harTurFilter" onchange="renderHareketler()">
+      <option value="">Tüm Türler</option>
+      <option>Giriş</option><option>Çıkış</option><option>Sayım Farkı</option>
+      <option>Hurda</option><option>Tamir Gönderildi</option><option>İade</option>
+    </select>
+    <select class="form-control" class="form-control search-filter-sel" id="harZamanFilter" onchange="renderHareketler()">
+      <option value="">Tüm Zamanlar</option>
+      <option value="7">Son 7 Gün</option><option value="30">Son 30 Gün</option><option value="month">Bu Ay</option>
+    </select>
+    <button class="btn btn-primary" onclick="openHarModal()">＋ Yeni Hareket</button>
+    <button class="btn scan-btn btn-sm" onclick="startScan('hareket')">📷 Tara</button>
+    <button class="btn btn-secondary" onclick="exportTable('hareketler')">📥 Excel</button>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">📋 Giriş / Çıkış Kayıtları</span><span id="harCount" style="font-size:12px;color:var(--muted)"></span></div>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>Tarih</th><th>Belge No</th><th>Malzeme Kodu</th><th>Malzeme Adı</th><th>Tür</th>
+        <th>Miktar</th><th>Birim</th><th>Personel</th><th>Konum</th><th>Alan Kişi</th><th>Notlar</th>
+      </tr></thead>
+      <tbody id="harBody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════════ DEPO HARİTASI ════════ -->
+<div id="view-depoharita" class="view">
+  <div class="search-bar">
+    <button class="btn btn-primary" onclick="addDepoZone()" id="addDepoBtn" style="display:none">＋ Depo/Raf Ekle</button>
+  </div>
+  <div class="depot-map" id="depotMap"></div>
+  <div class="card" id="shelfDetail" style="display:none">
+    <div class="card-header">
+      <span class="card-title" id="shelfTitle">Dolap İçeriği</span>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('shelfDetail').style.display='none'">✕ Kapat</button>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Malzeme Kodu</th><th>Malzeme Adı</th><th>Raf</th><th>Stok</th><th>Durum</th></tr></thead>
+      <tbody id="shelfBody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════════ SERİ NO TAKİBİ ════════ -->
+<div id="view-serino" class="view">
+  <div class="search-bar">
+    <input type="text" class="form-control search-input" placeholder="🔍 Seri no veya malzeme ara..." id="snSearch" oninput="renderSeriNo()">
+    <select class="form-control" class="form-control search-filter-sel" id="snDurumFilter" onchange="renderSeriNo()">
+      <option value="">Tüm Durumlar</option>
+      <option>Depoda</option><option>Sahada</option><option>Arızalı</option><option>Hurda</option><option>Tamirde</option>
+    </select>
+    <button class="btn btn-primary" onclick="openSeriNoModal()">＋ Yeni Kayıt</button>
+    <button class="btn scan-btn btn-sm" onclick="startScan('serino')">📷 Tara</button>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">🔢 Seri Numaralı Ekipman Takibi</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>Malzeme Kodu</th><th>Malzeme Adı</th><th>Seri No</th><th>Durum</th><th>Konum</th>
+        <th>Yer/Konum</th><th>Alan Kişi</th><th>HW/SW</th><th>Bakım</th><th>Notlar</th><th>İşlem</th>
+      </tr></thead>
+      <tbody id="snBody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════════ ARIZALI – TAMİRDE ════════ -->
+<div id="view-arizali" class="view">
+  <div class="search-bar">
+    <input type="text" class="form-control search-input" placeholder="🔍 Ara..." id="arzSearch" oninput="renderArizali()">
+    <select class="form-control" class="form-control search-filter-sel" id="arzKararFilter" onchange="renderArizali()">
+      <option value="">Tüm Kararlar</option>
+      <option>Tamirde</option><option>Tamir Edildi</option><option>Hurda (HEK)</option>
+      <option>Kullanıma Alındı</option><option>Parça Bekliyor</option>
+    </select>
+    <button class="btn btn-primary" onclick="openArizaModal()">＋ Arıza Kaydı</button>
+    <button class="btn scan-btn btn-sm" onclick="startScan('ariza')">📷 Barkodla Kayıt</button>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">🔧 Arızalı – Tamirde Takip</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>Malzeme</th><th>Seri No</th><th>Arıza Tarihi</th><th>Gönderim</th><th>Tah. Dönüş</th>
+        <th>Gün</th><th>Açıklama</th><th>Tamir Merkezi</th><th>Karar</th><th>Medya</th><th>İşlem</th>
+      </tr></thead>
+      <tbody id="arzBody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════════ KALİBRASYON / BAKIM ════════ -->
+<div id="view-kalibrasyon" class="view">
+  <div class="search-bar">
+    <input type="text" class="form-control search-input" placeholder="🔍 Ara..." id="kalSearch" oninput="renderKalibrasyon()">
+    <select class="form-control" class="form-control search-filter-sel" id="kalDurumFilter" onchange="renderKalibrasyon()">
+      <option value="">Tüm Durumlar</option>
+      <option>✅ Yapıldı</option><option>🟡 Yaklaşıyor</option><option>⛔ Gecikmiş</option>
+    </select>
+    <button class="btn btn-primary" onclick="openKalModal()">＋ Bakım Kaydı</button>
+    <button class="btn scan-btn btn-sm" onclick="startScan('bakim')">📷 Barkodla Kayıt</button>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">📅 Periyodik Bakım & Kalibrasyon Takvimi</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th>Malzeme Kodu</th><th>Malzeme Adı</th><th>Seri No</th><th>Bakım Türü</th>
+        <th>Periyot</th><th>Son Bakım</th><th>Sonraki</th><th>Gün Kaldı</th><th>Durum</th><th>Sorumlu</th><th>İşlem</th>
+      </tr></thead>
+      <tbody id="kalBody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════════ BARKOD / QR TARAYICI ════════ -->
+<div id="view-barkod" class="view">
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header"><span class="card-title">🔍 Hızlı Arama – Barkod / Seri No / Malzeme / Alan Kişi</span></div>
+    <div class="card-body">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input type="text" class="form-control" id="barkodSearchInput" placeholder="Barkod, Seri No, Malzeme Adı veya Alan Kişi..." style="flex:1;min-width:200px" oninput="barkodManualSearch(this.value)">
+        <button class="btn btn-primary" onclick="barkodManualSearch(document.getElementById('barkodSearchInput').value)">🔍 Ara</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('barkodSearchInput').value='';document.getElementById('barkodManualResult').innerHTML=''">✕ Temizle</button>
+      </div>
+      <div id="barkodManualResult" style="margin-top:12px"></div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card">
+      <div class="card-header"><span class="card-title">📷 Barkod / QR Kod Tara</span></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Kamerayı barkod veya QR koda tutarak envanter kaydını bulun.</p>
+        <button class="btn btn-primary" onclick="startScan('genel')" id="startScanBtn">📷 Taramayı Başlat</button>
+        <button class="btn btn-danger" onclick="stopScan()" id="stopScanBtn" style="display:none">⏹ Durdur</button>
+        <div id="scanReader" style="margin-top:14px"></div>
+        <div id="scanResult" style="margin-top:14px"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">🏷️ Barkod / QR Kod Oluştur</span></div>
+      <div class="card-body">
+        <div class="form-group" style="margin-bottom:10px">
+          <label>Malzeme Seçin</label>
+          <select class="form-control" id="qrMalzeme" onchange="generateCodes()"><option value="">Seçin...</option></select>
+        </div>
+        <div class="form-group" style="margin-bottom:10px">
+          <label>Veya Manuel Kod Girin</label>
+          <input type="text" class="form-control" id="qrManuel" placeholder="Malzeme kodu veya seri no" oninput="generateManualCodes()">
+        </div>
+        <div id="generatedCodes" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+            <div style="text-align:center">
+              <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">QR Kod</div>
+              <div id="qrCodeDisplay" class="qr-display"></div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Barkod</div>
+              <div class="barcode-container"><svg id="barcodeDisplay"></svg></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:14px;justify-content:center">
+            <button class="btn btn-secondary btn-sm" onclick="printCodes()">🖨️ Yazdır</button>
+            <button class="btn btn-secondary btn-sm" onclick="downloadQR()">📥 QR İndir</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="card-header"><span class="card-title">📋 Son Tarama Geçmişi</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Tarih</th><th>Okunan Kod</th><th>Bulunan Kayıt</th><th>Konum</th><th>Durum</th></tr></thead>
+      <tbody id="scanHistoryBody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════════ GRAFİKLER & RAPORLAR (Yeni - Sidebar'dan açılır) ════════ -->
+<div id="view-grafikler" class="view">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="chart-card">
+      <div class="chart-title">📊 Kategori Bazlı Stok Dağılımı</div>
+      <canvas id="chartKategori" height="200"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">📈 Hareket Türleri Dağılımı</div>
+      <canvas id="chartHareket" height="200"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">📉 Stok Durumu Özeti</div>
+      <canvas id="chartStokTrend" height="200"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">🎯 Kritiklik Dağılımı</div>
+      <canvas id="chartKritiklik" height="200"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">🔧 Bakım Durumu Özeti</div>
+      <canvas id="chartBakim" height="200"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">🏭 Depo Bazlı Dağılım</div>
+      <canvas id="chartDepo" height="200"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ PERSONEL FORMU (Yeni) ════════ -->
+<div id="view-personelformu" class="view">
+  <div class="search-bar">
+    <input type="text" class="form-control search-input" placeholder="🔍 Personel ara..." id="persSearch" oninput="renderPersonelFormu()">
+    <button class="btn btn-primary" onclick="openPersonelModal()">＋ Yeni Personel</button>
+    <button class="btn btn-secondary" onclick="exportTable('personelFormu')">📥 Excel</button>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">📝 Personel Kayıt Formu</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Ad Soyad</th><th>Sicil No</th><th>Ünvan</th><th>Birim</th><th>Telefon</th><th>E-posta</th><th>Görev</th><th>İşlem</th></tr></thead>
+      <tbody id="persBody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════════ KULLANICILAR ════════ -->
+<div id="view-kullanicilar" class="view">
+  <div class="search-bar">
+    <button class="btn btn-primary" onclick="openUserModal()">＋ Yeni Kullanıcı</button>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">👥 Kullanıcı & Yetki Yönetimi</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Kullanıcı Adı</th><th>Ad Soyad</th><th>Rol</th><th>Depo Erişimi</th><th>Son Giriş</th><th>Durum</th><th>İşlem</th></tr></thead>
+      <tbody id="userBody"></tbody>
+    </table></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="card-header"><span class="card-title">🔐 Yetki Matrisi</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>İşlem</th><th>Yönetici</th><th>Depo Sorumlusu</th><th>Görevli</th><th>İzleyici</th></tr></thead>
+      <tbody>
+        <tr><td>Envanter Görüntüle</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+        <tr><td>Stok Giriş/Çıkış</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td></tr>
+        <tr><td>Envanter Düzenle</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td></tr>
+        <tr><td>Arıza Kaydı</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td></tr>
+        <tr><td>Personel Formu</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td></tr>
+        <tr><td>Kullanıcı Yönetimi</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+        <tr><td>Ayarlar</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+        <tr><td>Rapor İndir</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════════ AYARLAR ════════ -->
+<div id="view-ayarlar" class="view">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+    <div class="card">
+      <div class="card-header"><span class="card-title">📁 Kategoriler</span><button class="btn btn-primary btn-sm" onclick="addListItem('kategoriler')">＋</button></div>
+      <ul id="list-kategoriler" style="list-style:none;padding:14px"></ul>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">📏 Birimler</span><button class="btn btn-primary btn-sm" onclick="addListItem('birimler')">＋</button></div>
+      <ul id="list-birimler" style="list-style:none;padding:14px"></ul>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">🏢 Depolar</span><button class="btn btn-primary btn-sm" onclick="addListItem('depolar')">＋</button></div>
+      <ul id="list-depolar" style="list-style:none;padding:14px"></ul>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">⚡ İşlem Türleri</span><button class="btn btn-primary btn-sm" onclick="addListItem('islemturleri')">＋</button></div>
+      <ul id="list-islemturleri" style="list-style:none;padding:14px"></ul>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">🔴 Arıza Tipleri</span><button class="btn btn-primary btn-sm" onclick="addListItem('arizatipler')">＋</button></div>
+      <ul id="list-arizatipler" style="list-style:none;padding:14px"></ul>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">📍 Konumlar</span><button class="btn btn-primary btn-sm" onclick="addListItem('teknikBinalar')">＋</button></div>
+      <ul id="list-teknikBinalar" style="list-style:none;padding:14px"></ul>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="card-header"><span class="card-title">🏭 Tedarikçi Rehberi</span><button class="btn btn-primary btn-sm" onclick="addTedarikci()">＋</button></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Tedarikçi</th><th>İlgili Kişi</th><th>Telefon</th><th>E-posta</th><th>Malzeme Tipi</th></tr></thead>
+      <tbody id="tedarikciBody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════════ İŞLEM KAYDI (LOG) ════════ -->
+<div id="view-log" class="view">
+  <div class="search-bar">
+    <input type="text" class="form-control search-input" placeholder="🔍 Ara..." id="logSearch" oninput="renderLog()">
+    <button class="btn btn-secondary" onclick="exportTable('log')" style="margin-left:auto">📥 Logları İndir</button>
+    <button class="btn btn-danger" onclick="clearLog()">🗑️ Logları Temizle</button>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">📜 İşlem Kayıt Geçmişi (Audit Log)</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Tarih / Saat</th><th>Kullanıcı</th><th>Modül</th><th>İşlem</th><th>Detay</th></tr></thead>
+      <tbody id="logBody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ════════ YEDEKLEME & İNDİRME ════════ -->
+<div id="view-yedekleme" class="view">
+  <div class="card">
+    <div class="card-header"><span class="card-title">💾 Veri Yedekleme & Geri Yükleme</span></div>
+    <div class="card-body">
+      <div class="alert alert-green" style="margin-bottom:16px">
+        <span>💡</span>
+        <span>Verileriniz sunucudaki <strong>storage/tcdd_depo_data.xml</strong> dosyasında saklanır. Buradan gerçek XML yedeğini indirip geri yükleyebilirsiniz.</span>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+        <button class="btn btn-primary" onclick="downloadXmlBackup()">📥 XML Yedek İndir</button>
+        <button class="btn btn-success" onclick="triggerXmlImport()">📤 XML Yedek Yükle</button>
+        <button class="btn btn-primary" onclick="exportAllToJSON()">📤 JSON Yedek İndir</button>
+        <button class="btn btn-success" onclick="importFromJSON()">📥 JSON'dan Yükle</button>
+        <button class="btn btn-primary" onclick="exportAllExcel()">📊 Tüm Verileri Excel İndir</button>
+        <button class="btn btn-success" onclick="triggerExcelImport()">📥 Excel'den Yükle</button>
+        <input type="file" id="jsonFileInput" accept=".json" style="display:none" onchange="handleJSONImport(event)">
+        <input type="file" id="xmlFileInput" accept=".xml,text/xml,application/xml" style="display:none" onchange="handleXmlImport(event)">
+        <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display:none" onchange="handleExcelImport(event)">
+      </div>
+      
+      <div class="card" style="margin-top:16px">
+        <div class="card-header"><span class="card-title">📥 Sayfa Bazlı İndirme</span></div>
+        <div class="card-body" style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-secondary" onclick="exportTable('envanter')">📦 Envanter</button>
+          <button class="btn btn-secondary" onclick="exportTable('hareketler')">📋 Hareketler</button>
+          <button class="btn btn-secondary" onclick="exportTable('serino')">🔢 Seri No</button>
+          <button class="btn btn-secondary" onclick="exportTable('arizali')">🔧 Arızalı</button>
+          <button class="btn btn-secondary" onclick="exportTable('kalibrasyon')">📅 Kalibrasyon</button>
+          <button class="btn btn-secondary" onclick="exportTable('log')">📜 Loglar</button>
+          <button class="btn btn-secondary" onclick="exportTable('personelFormu')">📝 Personel</button>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;padding:14px;background:var(--light);border-radius:var(--radius);font-size:12px;color:var(--muted)">
+        <strong>Son Kayıt:</strong> <span id="lastSaveTime">–</span> &nbsp;|&nbsp;
+        <strong>Toplam Kayıt:</strong> <span id="totalRecords">0</span> &nbsp;|&nbsp;
+        <strong>Veri Boyutu:</strong> <span id="dataSize">0 KB</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalBox">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">Modal</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter">
+      <button class="btn btn-secondary" onclick="closeModal()">İptal</button>
+      <button class="btn btn-primary" id="modalSaveBtn" onclick="saveModal()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- TARAMA MODALI -->
+<div class="modal-overlay" id="scanModalOverlay">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title" id="scanModalTitle">📷 Barkod / QR Tara</div>
+      <button class="modal-close" onclick="closeScanModal()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px">
+      <div id="scanModalReader" style="max-width:400px;margin:0 auto"></div>
+      <div id="scanModalResult" style="margin-top:12px;max-height:360px;overflow-y:auto"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeScanModal()">Kapat</button>
+      <button class="btn btn-primary" id="tekrarTaraBtn" style="display:none" onclick="tekrarTara()">📷 Tekrar Tara</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="toast"></div>
+<script>
+
+// HATA YAKALAYICI - Script çalışmazsa konsola yazar
+window.onerror = function(msg, url, line, col, err) {
+  console.error('TCDD HATA:', msg, 'Satir:', line, 'Sutun:', col);
+  var errDiv = document.getElementById('loginError');
+  if(errDiv) { errDiv.textContent = 'JS Hata: ' + msg; errDiv.style.display = 'block'; }
+  return false;
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  VERİ MODELİ VE YAPILANDIRMA
+// ═══════════════════════════════════════════════════════════════
+
+// Rol bazlı yetki matrisi - Yeni yetki eklemek için buraya ekleyin
+var ROLE_PERMISSIONS = {
+  'Yönetici':       {view:true, stockIn:true, stockOut:true, edit:true, fault:true, users:true, settings:true, report:true, personel:true},
+  'Depo Sorumlusu': {view:true, stockIn:true, stockOut:true, edit:true, fault:true, users:false, settings:false, report:true, personel:true},
+  'Görevli':        {view:true, stockIn:true, stockOut:true, edit:false, fault:true, users:false, settings:false, report:false, personel:true},
+  'İzleyici':       {view:true, stockIn:false, stockOut:false, edit:false, fault:false, users:false, settings:false, report:false, personel:false}
+};
+
+// Uygulama durumu
+var currentUser = null;
+var currentPage = 'dashboard';
+var currentModal = null;
+var editingId = null;
+var html5QrCode = null;
+var scanModalScanner = null;
+var scanHistory = [];
+var scanContext = null;
+var isAppsScript = false;
+var API_BASE = 'api.php';
+
+// Ana veri deposu - Tüm veriler burada tutulur
+var DB = {
+  envanter: [],
+  hareketler: [],
+  serino: [],
+  arizali: [],
+  kalibrasyon: [],
+  kullanicilar: [],
+  log: [],
+  personelFormu: [],
+  teknikBinalar: [],
+  ayarlar: {
+    kategoriler: ['Sinyalizasyon','Haberleşme','Enerji','Mekanik','Sarf Malzeme','Ölçü Aleti'],
+    birimler: ['Adet','Metre','Kg','Takım','Kutu','Rulo','Litre','Paket'],
+    depolar: ['Ön Depo','Arka Depo','Yan Alan','Ön Alan'],
+    islemturleri: ['Giriş','Çıkış','Sayım Farkı','Hurda','Tamir Gönderildi','İade'],
+    arizatipler: ['Elektronik Arıza','Mekanik Hasar','Yazılım Hatası','Fiziksel Hasar','Aşınma','Bilinmeyen'],
+    istasyonlar: ['Tavşanlı Garı','Simav İstasyonu','Emet İstasyonu','Gediz İstasyonu','Kütahya İstasyonu','Afyonkarahisar'],
+    teknikBinalar: ['EMS014','EM048','BA060','DEPO','GEÇİCİ'],
+    tedarikci: [
+      {ad:'Siemens TR',kisi:'Teknik Destek',tel:'0212-XXX-XXXX',email:'teknik@siemens.com.tr',tip:'Elektronik Kart'},
+      {ad:'Alstom TR',kisi:'Servis',tel:'0312-XXX-XXXX',email:'servis@alstom.com',tip:'Sinyal Sistemi'},
+      {ad:'Frauscher',kisi:'Destek',tel:'0232-XXX-XXXX',email:'support@frauscher.com',tip:'Ray Devresi'},
+      {ad:'Hirschmann',kisi:'Servis',tel:'0216-XXX-XXXX',email:'info@hirschmann.com',tip:'Network Ürünleri'}
+    ]
+  }
+};
+
+// Varsayılan kullanıcılar (şifreler giriş ekranında GÖRÜNMEZler)
+var DEFAULT_USERS = [
+  {id:1,user:'admin',pass:'admin123',name:'Sistem Yöneticisi',role:'Yönetici',access:'Tüm Depolar',active:true,lastLogin:''},
+  {id:2,user:'depo1',pass:'depo123',name:'Ahmet Yılmaz',role:'Depo Sorumlusu',access:'Ön Depo, Arka Depo',active:true,lastLogin:''},
+  {id:3,user:'gorevli1',pass:'gorev123',name:'Ali Demir',role:'Görevli',access:'Tüm Depolar',active:true,lastLogin:''},
+  {id:4,user:'izleyici',pass:'izle123',name:'Hasan Öz',role:'İzleyici',access:'Tüm Depolar (Salt Okunur)',active:true,lastLogin:''}
+];
+
+// ═══════════════════════════════════════════════════════════════
+//  YARDIMCI FONKSİYONLAR
+// ═══════════════════════════════════════════════════════════════
+
+// Benzersiz ID üret
+function uid(){ return Date.now() + Math.random().toString(36).slice(2,7); }
+
+// Bugünün tarihi (YYYY-MM-DD)
+function today(){ return new Date().toISOString().split('T')[0]; }
+
+// Tarih formatla (Türkçe)
+function fmtDate(d){ if(!d) return '–'; const dt=new Date(d); return isNaN(dt)?String(d):dt.toLocaleDateString('tr-TR'); }
+
+// İki tarih arası gün farkı
+function daysDiff(a,b){ return Math.round((new Date(b)-new Date(a))/(1000*86400)); }
+
+// HTML escape (XSS koruması)
+function esc(s){ if(s===null||s===undefined) return ''; const d=document.createElement('div'); d.textContent=String(s); return d.innerHTML; }
+
+// Form değeri al
+function val(id){ return document.getElementById(id)?.value||''; }
+
+// Form değeri set et
+function setVal(id,v){ if(document.getElementById(id)) document.getElementById(id).value=v||''; }
+
+// Toast bildirim göster
+function showToast(msg, type='info'){
+  const t=document.getElementById('toast');
+  const el=document.createElement('div');
+  el.className='toast-item';
+  el.style.borderLeftColor = type==='error'?'#dc2626':type==='success'?'#15803d':'#1d4ed8';
+  el.textContent=msg;
+  t.appendChild(el);
+  setTimeout(()=>{ if(el.parentNode) el.remove(); },3500);
+}
+
+// Log kaydı ekle (tüm işlemler kaydedilir)
+function addLog(modul, islem, detay){
+  DB.log.unshift({
+    id:Date.now(),
+    tarih:new Date().toLocaleString('tr-TR'),
+    kullanici:currentUser?.name||'–',
+    modul, islem, detay
+  });
+  if(DB.log.length>500) DB.log=DB.log.slice(0,500);
+}
+
+// Yetki kontrolü
+function can(perm){ return currentUser && ROLE_PERMISSIONS[currentUser.role]?.[perm]; }
+
+// Stok durumu hesapla
+function getStokDurum(stok,min){
+  if(stok<=0) return {label:'⛔ TÜKENDİ',cls:'badge-red'};
+  if(stok<=min) return {label:'⚠️ KRİTİK',cls:'badge-yellow'};
+  return {label:'✅ YETERLİ',cls:'badge-green'};
+}
+
+// Kritiklik badge
+function getKritiklik(k){
+  const m={A:'badge-red',B:'badge-yellow',C:'badge-green'};
+  const l={A:'A: Trafik Durur',B:'B: Kısıtlı',C:'C: Etkisiz'};
+  return `<span class="badge ${m[k]||'badge-gray'}">${esc(l[k]||k)}</span>`;
+}
+
+// Benzersiz barkod üret
+function generateUniqueBarcode(prefix){
+  let barcode;
+  let attempts = 0;
+  do {
+    barcode = prefix + '-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase();
+    attempts++;
+  } while(!isBarcodeUniqueLocal(barcode) && attempts < 100);
+  return barcode;
+}
+
+// Barkod benzersizlik kontrolü (yerel)
+function isBarcodeUniqueLocal(barcode, excludeId){
+  const envDup = DB.envanter.find(e => e.kod === barcode && e.id !== excludeId);
+  const snDup = DB.serino.find(s => (s.seriNo === barcode || s.barkod === barcode) && s.id !== excludeId);
+  return !envDup && !snDup;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  VERİ KAYDETME VE YÜKLEME (LocalStorage + Sunucu Excel API)
+// ═══════════════════════════════════════════════════════════════
+
+var LS_KEY = 'tcdd_depo_pro';
+var SERVER_API_URL = API_BASE;
+
+function serverApi(action, payload){
+  var opts = { method:'POST', headers:{'Content-Type':'application/json'} };
+  if(payload !== undefined) opts.body = JSON.stringify(payload);
+  return fetch(SERVER_API_URL + '?action=' + encodeURIComponent(action), opts).then(function(r){
+    return r.text().then(function(t){
+      var data = {};
+      try { data = t ? JSON.parse(t) : {}; } catch(e){ throw new Error('Sunucu gecersiz JSON dondu'); }
+      if(!r.ok || (data && data.success === false)) throw new Error((data && (data.error || data.message)) || ('HTTP ' + r.status));
+      return data;
+    });
+  });
+}
+
+
+function saveToLS(){
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify(DB));
+    localStorage.setItem('tcdd_lastSave', new Date().toLocaleString('tr-TR'));
+  } catch(e){}
+  syncToServer();
+}
+
+function loadFromLS(){
+  try{
+    var raw = localStorage.getItem(LS_KEY);
+    if(raw){
+      var saved = JSON.parse(raw);
+      Object.keys(saved).forEach(function(key) {
+        if(DB.hasOwnProperty(key)) DB[key] = saved[key];
+      });
+      return true;
+    }
+  } catch(e){}
+  return false;
+}
+
+async function apiRequest(action, payload, method){
+  var opts = {
+    method: method || 'POST',
+    headers: {'Content-Type':'application/json'},
+    credentials: 'same-origin'
+  };
+  if(opts.method !== 'GET') opts.body = JSON.stringify(payload || {});
+  var url = API_BASE + '?action=' + encodeURIComponent(action);
+  var res = await fetch(url, opts);
+  var data = await res.json().catch(function(){ return {success:false,error:'Sunucu JSON cevabi okunamadi'}; });
+  if(!res.ok || data.success === false){
+    throw new Error(data.error || ('HTTP ' + res.status));
+  }
+  return data;
+}
+
+async function syncToServer(){
+  updateSyncStatus('syncing');
+  try{
+    await apiRequest('sync', {db: DB}, 'POST');
+    updateSyncStatus('synced');
+  }catch(err){
+    console.warn('Excel sync hatasi:', err);
+    updateSyncStatus('error');
+    showToast('⚠️ Excel kayit hatasi: ' + (err.message || err), 'error');
+  }
+}
+
+function updateSyncStatus(status){
+  const el = document.getElementById('syncStatus');
+  const txt = document.getElementById('syncText');
+  if(!el || !txt) return;
+
+  el.className = 'sync-indicator ' + status;
+  const labels = {syncing:'Excel senkronize ediliyor...', synced:'✓ Excel senkronize', error:'✕ Excel hatasi'};
+  txt.textContent = labels[status] || 'Hazır';
+
+  if(status === 'synced'){
+    setTimeout(function(){ txt.textContent = '✓ Kayıtlı'; }, 2000);
+  }
+}
+
+async function loadFromServer(){
+  updateSyncStatus('syncing');
+  try{
+    var data = await apiRequest('bootstrap', null, 'GET');
+    if(data && data.db){
+      Object.keys(data.db).forEach(function(key){
+        if(DB.hasOwnProperty(key) && data.db[key] !== undefined && data.db[key] !== null){
+          DB[key] = data.db[key];
+        }
+      });
+      try{ localStorage.setItem(LS_KEY, JSON.stringify(DB)); }catch(e){}
+    }
+    updateSyncStatus('synced');
+    if(currentUser) navigate(currentPage || 'dashboard');
+    return true;
+  }catch(err){
+    console.warn('Excel yukleme hatasi:', err);
+    updateSyncStatus('error');
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GİRİŞ / ÇIKIŞ
+// ═══════════════════════════════════════════════════════════════
+
+// Giriş formu Enter tuşu (try-catch: Google Apps Script sandbox uyumu)
+try {
+  document.addEventListener('keydown', function(e) {
+    if(e.key === 'Enter' && !document.getElementById('loginScreen').classList.contains('hidden')){
+      doLogin();
+    }
+  });
+} catch(e) { console.warn('keydown listener hatasi:', e); }
+
+// Kullanıcı girişi
+async function doLogin(){
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  document.getElementById('loginError').style.display = 'none';
+  if(!u || !p){
+    document.getElementById('loginError').textContent = '❌ Kullanıcı adı ve şifre boş bırakılamaz';
+    document.getElementById('loginError').style.display = 'block';
+    return;
+  }
+  serverApi('login', {username:u, password:p}).then(function(resp){
+    const user = resp.user;
+    currentUser = Object.assign({}, user);
+    try { localStorage.setItem('tcdd_user', JSON.stringify(currentUser)); } catch(e) {}
+    const idx = DB.kullanicilar.findIndex(x => String(x.id) === String(user.id));
+    if(idx !== -1) DB.kullanicilar[idx].lastLogin = user.lastLogin;
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('app').classList.add('visible');
+    document.getElementById('sidebarAvatar').textContent = user.name.charAt(0).toUpperCase();
+    document.getElementById('sidebarName').textContent = user.name;
+    document.getElementById('sidebarRole').textContent = user.role;
+    document.getElementById('usersNav').style.display = '';
+    var ayarlarNav = document.querySelector('[data-page="ayarlar"]');
+    if(ayarlarNav) ayarlarNav.style.display = '';
+    var addDepoBtn = document.getElementById('addDepoBtn');
+    if(addDepoBtn) addDepoBtn.style.display = 'none';
+    if(!can('users')) document.getElementById('usersNav').style.display = 'none';
+    if(!can('settings') && ayarlarNav) ayarlarNav.style.display = 'none';
+    if(can('edit') && addDepoBtn) addDepoBtn.style.display = 'inline-flex';
+    addLog('Sistem','Giriş', user.name + ' (' + user.role + ') giriş yaptı');
+    saveToLS();
+    navigate('dashboard');
+    showToast('Hoş geldiniz, ' + user.name + '!', 'success');
+    setTimeout(showCriticalNotifications, 1500);
+  }).catch(function(err){
+    document.getElementById('loginError').textContent = '❌ ' + (err.message || 'Hatalı kullanıcı adı veya şifre');
+    document.getElementById('loginError').style.display = 'block';
+  });
+}
+
+// Çıkış
+function doLogout(){
+  if(currentUser) addLog('Sistem','Çıkış',`${currentUser.name} çıkış yaptı`);
+  saveToLS();
+  currentUser = null;
+  currentPage = 'dashboard';
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginError').style.display = 'none';
+  localStorage.removeItem('tcdd_user');
+}
+
+// Kritik bildirimler
+function showCriticalNotifications(){
+  const kritik = DB.envanter.filter(e => e.stok <= e.min);
+  const gecikmis = DB.kalibrasyon.filter(k => {
+    if(!k.sonBakim) return false;
+    const n = new Date(k.sonBakim);
+    if(isNaN(n.getTime())) return false;
+    n.setMonth(n.getMonth() + (k.periyot||12));
+    return n < new Date();
+  });
+  if(kritik.length > 0) showToast(`⚠️ ${kritik.length} malzeme kritik stok seviyesinde!`,'error');
+  if(gecikmis.length > 0) setTimeout(() => showToast(`📅 ${gecikmis.length} bakım gecikmiş durumda!`,'error'), 1500);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  NAVİGASYON
+// ═══════════════════════════════════════════════════════════════
+
+function navigate(page){
+  currentPage = page;
+  // Aktif navigasyon öğesini güncelle
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  
+  // Sayfa başlıkları
+  const titles = {
+    dashboard:'📊 Gösterge Paneli', envanter:'📦 Envanter Listesi',
+    hareketler:'📋 Giriş / Çıkış Hareketleri', depoharita:'🗺️ Depo Haritası',
+    serino:'🔢 Seri No Takibi', arizali:'🔧 Arızalı – Tamirde',
+    kalibrasyon:'📅 Kalibrasyon / Bakım', kullanicilar:'👥 Kullanıcı Yönetimi',
+    ayarlar:'⚙️ Ayarlar', log:'📜 İşlem Kayıt Geçmişi',
+    barkod:'📷 Barkod / QR Tarayıcı', yedekleme:'💾 Yedekleme & İndirme',
+    grafikler:'📈 Grafikler & Raporlar', personelformu:'📝 Personel Formu'
+  };
+  
+  document.getElementById('pageTitle').textContent = titles[page] || page;
+  
+  const v = document.getElementById('view-'+page);
+  if(v) v.classList.add('active');
+  
+  const nav = document.querySelector(`.nav-item[data-page="${page}"]`);
+  if(nav) nav.classList.add('active');
+  
+  // Sayfa render fonksiyonları
+  const renders = {
+    dashboard:renderDashboard, envanter:renderEnvanter, hareketler:renderHareketler,
+    depoharita:renderDepoHarita, serino:renderSeriNo, arizali:renderArizali,
+    kalibrasyon:renderKalibrasyon, kullanicilar:renderKullanicilar, ayarlar:renderAyarlar,
+    log:renderLog, barkod:renderBarkod, yedekleme:renderYedekleme,
+    grafikler:renderGrafikler, personelformu:renderPersonelFormu
+  };
+  if(renders[page]) renders[page]();
+  
+  // Mobilde sidebar'ı kapat
+  if(window.innerWidth <= 768){
+    document.getElementById('sidebar').classList.add('collapsed');
+    document.getElementById('sidebarOverlay').classList.remove('show');
+  }
+}
+
+// Filtreli navigasyon
+function navigateWithFilter(page, filter){
+  navigate(page);
+  if(page==='envanter' && filter){
+    const el = document.getElementById('envDurumFilter');
+    if(el){ el.value = filter; renderEnvanter(); }
+  }
+  if(page==='kalibrasyon' && filter){
+    const el = document.getElementById('kalDurumFilter');
+    const map = {'Gecikmiş':'⛔ Gecikmiş','Yaklaşıyor':'🟡 Yaklaşıyor','Yapıldı':'✅ Yapıldı'};
+    if(el){ el.value = map[filter]||filter; renderKalibrasyon(); }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SIDEBAR AÇMA/KAPAMA
+// ═══════════════════════════════════════════════════════════════
+
+function toggleSidebar(){
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  sidebar.classList.toggle('collapsed');
+  
+  if(window.innerWidth <= 768){
+    overlay.classList.toggle('show', !sidebar.classList.contains('collapsed'));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  KARANLIK MOD
+// ═══════════════════════════════════════════════════════════════
+
+function toggleDarkMode(){
+  document.body.classList.toggle('dark-mode');
+  var on = document.body.classList.contains('dark-mode');
+  document.getElementById('darkToggle').textContent = on ? '☀️' : '🌙';
+  try { localStorage.setItem('tcdd_dark', on ? '1' : '0'); } catch(e) {}
+}
+function initDarkMode(){
+  try {
+    if(localStorage.getItem('tcdd_dark') === '1'){
+      document.body.classList.add('dark-mode');
+      document.getElementById('darkToggle').textContent = '☀️';
+    }
+  } catch(e) { /* Apps Script sandbox */ }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MODAL SİSTEMİ
+// ═══════════════════════════════════════════════════════════════
+
+function openModal(title, body, saveLabel='Kaydet'){
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = body;
+  document.getElementById('modalSaveBtn').textContent = saveLabel;
+  document.getElementById('modalSaveBtn').style.display = 'inline-flex';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('open');
+  currentModal = null;
+  editingId = null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DEMO VERİ (İlk çalıştırmada yüklenir)
+// ═══════════════════════════════════════════════════════════════
+
+function loadDemoData(){
+  DB.kullanicilar = [...DEFAULT_USERS];
+  
+  DB.envanter = [
+    {id:1,kod:'SIG-EL-0001',ad:'SM Kartı – Siemens SIMIS',kategori:'Sinyalizasyon',altkat:'Elektronik Kart',birim:'Adet',konum:'Ön Depo – A1 – Raf 2',min:2,max:10,stok:4,kritiklik:'A',tedarikci:'Siemens TR',sonAlim:'2024-03-15',fiyat:45000,model:'Siemens SIMIS-D SM v4.2',garanti:'2026-12-31',kondisyon:'Sıfır',notlar:'',barkod:'SIG-EL-0001',teknikBina:'DEPO',sorumluKisi:'Ahmet Yılmaz'},
+    {id:2,kod:'SIG-EL-0002',ad:'PM Kartı – Siemens SIMIS',kategori:'Sinyalizasyon',altkat:'Elektronik Kart',birim:'Adet',konum:'Ön Depo – A1 – Raf 3',min:2,max:8,stok:4,kritiklik:'A',tedarikci:'Siemens TR',sonAlim:'2024-03-20',fiyat:38000,model:'Siemens SIMIS-D PM v3.1',garanti:'2026-12-31',kondisyon:'Sıfır',notlar:'',barkod:'SIG-EL-0002',teknikBina:'DEPO',sorumluKisi:'Ahmet Yılmaz'},
+    {id:3,kod:'SIG-EL-0003',ad:'CPU Kartı – Alstom EBI',kategori:'Sinyalizasyon',altkat:'Elektronik Kart',birim:'Adet',konum:'Ön Depo – A2 – Raf 1',min:1,max:5,stok:0,kritiklik:'A',tedarikci:'Alstom TR',sonAlim:'2024-01-10',fiyat:62000,model:'Alstom EBI Gate 2000',garanti:'2027-06-30',kondisyon:'Sıfır',notlar:'Kritik',barkod:'SIG-EL-0003',teknikBina:'DEPO',sorumluKisi:'Mehmet Kaya'},
+    {id:4,kod:'SIG-RL-0001',ad:'Ray Devresi – TI21',kategori:'Sinyalizasyon',altkat:'Ray Devresi',birim:'Adet',konum:'Ön Depo – A3 – Raf 1',min:2,max:6,stok:2,kritiklik:'A',tedarikci:'Frauscher',sonAlim:'2024-02-05',fiyat:28500,model:'Frauscher TI21 / 83Hz',garanti:'',kondisyon:'Revizyonlu',notlar:'',barkod:'SIG-RL-0001',teknikBina:'DEPO',sorumluKisi:'Ali Demir'},
+    {id:5,kod:'HAB-FK-0001',ad:'Fiber Optik Kablo 48 Çekirdek',kategori:'Haberleşme',altkat:'Kablo',birim:'Metre',konum:'Arka Depo – B2 – Raf 1',min:50,max:500,stok:150,kritiklik:'B',tedarikci:'Corning TR',sonAlim:'2024-03-08',fiyat:12.5,model:'Corning SMF-28 Ultra',garanti:'',kondisyon:'Sıfır',notlar:'',barkod:'HAB-FK-0001',teknikBina:'DEPO',sorumluKisi:'Ali Demir'},
+    {id:6,kod:'HAB-SW-0001',ad:'Ethernet Switch 8-Port',kategori:'Haberleşme',altkat:'Network',birim:'Adet',konum:'Ön Depo – A4 – Raf 2',min:2,max:6,stok:1,kritiklik:'A',tedarikci:'Hirschmann',sonAlim:'2024-01-20',fiyat:8500,model:'Hirschmann RS20-0800',garanti:'2025-12-31',kondisyon:'Sıfır',notlar:'',barkod:'HAB-SW-0001',teknikBina:'DEPO',sorumluKisi:'Hasan Öz'},
+    {id:7,kod:'ENR-UPS-0001',ad:'UPS – 3kVA',kategori:'Enerji',altkat:'UPS',birim:'Adet',konum:'Arka Depo – C1 – Raf 1',min:1,max:3,stok:2,kritiklik:'A',tedarikci:'Eaton TR',sonAlim:'2023-12-15',fiyat:25000,model:'Eaton 5PX 3000i',garanti:'2026-12-15',kondisyon:'Sıfır',notlar:'',barkod:'ENR-UPS-0001',teknikBina:'DEPO',sorumluKisi:'Mehmet Kaya'},
+    {id:8,kod:'MEK-MM-0001',ad:'Makas Motoru',kategori:'Mekanik',altkat:'Motor',birim:'Adet',konum:'Arka Depo – D1 – Raf 1',min:1,max:4,stok:2,kritiklik:'A',tedarikci:'Siemens TR',sonAlim:'2023-11-10',fiyat:35000,model:'Siemens 3SB HKT',garanti:'2026-11-10',kondisyon:'Sıfır',notlar:'',barkod:'MEK-MM-0001',teknikBina:'DEPO',sorumluKisi:'Mehmet Kaya'},
+    {id:9,kod:'OLC-MT-0001',ad:'Multimetre Fluke 87V',kategori:'Ölçü Aleti',altkat:'Test/Ölçü',birim:'Adet',konum:'Ön Depo – A5 – Raf 1',min:1,max:3,stok:2,kritiklik:'C',tedarikci:'Fluke TR',sonAlim:'2024-01-15',fiyat:12000,model:'Fluke 87V',garanti:'2026-01-15',kondisyon:'Sıfır',notlar:'Kalibrasyonlu',barkod:'OLC-MT-0001',teknikBina:'DEPO',sorumluKisi:'Ahmet Yılmaz'}
+  ];
+
+  DB.hareketler = [
+    {id:1,tarih:'2024-03-01',belge:'GRS-2024-001',malKod:'SIG-EL-0001',malAd:'SM Kartı – Siemens SIMIS',tur:'Giriş',miktar:5,birim:'Adet',personel:'Ahmet Yılmaz',onaylayan:'Müdür',istasyon:'Ön Depo',notlar:'FT-2024-0312',teknikBina:'DEPO',alanKisi:'Ahmet Yılmaz'},
+    {id:2,tarih:'2024-03-10',belge:'CKS-2024-001',malKod:'SIG-EL-0001',malAd:'SM Kartı – Siemens SIMIS',tur:'Çıkış',miktar:1,birim:'Adet',personel:'Mehmet Kaya',onaylayan:'Ahmet Yılmaz',istasyon:'Tavşanlı İst. – 4. Makas',notlar:'ARZ-2024-018',teknikBina:'EMS014',alanKisi:'Mehmet Kaya'},
+    {id:3,tarih:'2024-03-12',belge:'GRS-2024-003',malKod:'HAB-FK-0001',malAd:'Fiber Optik Kablo 48 Çekirdek',tur:'Giriş',miktar:200,birim:'Metre',personel:'Ali Demir',onaylayan:'Müdür',istasyon:'Arka Depo',notlar:'',teknikBina:'DEPO',alanKisi:'Ali Demir'}
+  ];
+
+  DB.serino = [
+    {id:1,malKod:'SIG-EL-0001',malAd:'SM Kartı – Siemens',seriNo:'SM-2024-001',durum:'Depoda',konum:'Ön Depo – A1 – Raf 2',giris:'2024-03-01',sonHareket:'',sorumlu:'Ahmet Yılmaz',isEmri:'',bakimSayisi:0,versiyon:'HW:4.2 / SW:3.1',notlar:'',teknikBina:'DEPO',alanKisi:'Ahmet Yılmaz',barkod:'SM-2024-001'},
+    {id:2,malKod:'SIG-EL-0001',malAd:'SM Kartı – Siemens',seriNo:'SM-2023-047',durum:'Sahada',konum:'EMS014 Teknik Binası',giris:'2023-06-15',sonHareket:'2024-03-10',sorumlu:'Mehmet Kaya',isEmri:'ARZ-2024-018',bakimSayisi:2,versiyon:'HW:4.1 / SW:2.8',notlar:'Sahada kullanımda',teknikBina:'EMS014',alanKisi:'Mehmet Kaya',barkod:'SM-2023-047'},
+    {id:3,malKod:'SIG-RL-0001',malAd:'Ray Devresi TI21',seriNo:'TI21-2024-001',durum:'Depoda',konum:'Ön Depo – A3 – Raf 1',giris:'2024-03-20',sonHareket:'',sorumlu:'Ali Demir',isEmri:'',bakimSayisi:0,versiyon:'TI21 / 83Hz',notlar:'',teknikBina:'DEPO',alanKisi:'Ali Demir',barkod:'TI21-2024-001'}
+  ];
+
+  DB.arizali = [
+    {id:1,malKod:'SIG-EL-0001',malAd:'SM Kartı – Siemens',seriNo:'SM-2023-047',arizaTarih:'2024-03-08',gonderimTarih:'2024-03-10',tahminiDonus:'2024-04-15',aciklama:'Çıkış kapısı arızası',istasyon:'Tavşanlı İst.',arizaNo:'ARZ-2024-018',tamirMerkezi:'Siemens TR Servis',karar:'Tamirde',kararTarih:'',notlar:'Garanti kapsamında',fotograflar:'',videolar:''}
+  ];
+
+  DB.kalibrasyon = [
+    {id:1,malKod:'OLC-MT-0001',malAd:'Multimetre Fluke 87V',seriNo:'FLK-2024-001',bakimTur:'Kalibrasyon',periyot:12,sonBakim:'2024-01-15',sorumlu:'Ahmet Yılmaz',notlar:'TSE onaylı'},
+    {id:2,malKod:'ENR-UPS-0001',malAd:'UPS – 3kVA',seriNo:'UPS-2024-001',bakimTur:'Akü Testi',periyot:6,sonBakim:'2024-02-01',sorumlu:'Mehmet Kaya',notlar:''},
+    {id:3,malKod:'MEK-MM-0001',malAd:'Makas Motoru',seriNo:'MM-2024-001',bakimTur:'Mekanik Bakım',periyot:6,sonBakim:'2024-01-20',sorumlu:'Mehmet Kaya',notlar:'Yağlama kontrolü'}
+  ];
+  
+  DB.personelFormu = [
+    {id:1,ad:'Ahmet',soyad:'Yılmaz',sicilNo:'TVS-001',unvan:'Depo Sorumlusu',birim:'SH Bakım',telefon:'05XX-XXX-XXXX',eposta:'ahmet@tcdd.gov.tr',gorev:'Depo sorumlusu',notlar:''},
+    {id:2,ad:'Mehmet',soyad:'Kaya',sicilNo:'TVS-002',unvan:'Tekniker',birim:'SH Bakım',telefon:'05XX-XXX-XXXX',eposta:'mehmet@tcdd.gov.tr',gorev:'Saha tekniker',notlar:''},
+    {id:3,ad:'Ali',soyad:'Demir',sicilNo:'TVS-003',unvan:'Tekniker',birim:'SH Bakım',telefon:'05XX-XXX-XXXX',eposta:'ali@tcdd.gov.tr',gorev:'Saha tekniker',notlar:''}
+  ];
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  UYGULAMA BAŞLATMA (alttaki initApp fonksiyonunda)
+// ═══════════════════════════════════════════════════════════════
+
+function setupAutoBackup(){
+  try {
+    var lastBackup = localStorage.getItem('tcdd_lastAutoBackup');
+    var today_ = today();
+    if(lastBackup !== today_){
+      setTimeout(function(){
+        try{
+          localStorage.setItem('tcdd_lastAutoBackup', today_);
+          addLog('Sistem','Otomatik Yedek','Gunluk yedek olusturuldu');
+        }catch(e2){}
+      }, 5000);
+    }
+  } catch(e) { /* Apps Script sandbox */ }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  DASHBOARD RENDER
+// ═══════════════════════════════════════════════════════════════
+
+function renderDashboard(){
+  const total = DB.envanter.length;
+  const kritik = DB.envanter.filter(e => e.stok <= e.min).length;
+  const arizali = DB.arizali.filter(a => a.karar!=='Tamir Edildi' && a.karar!=='Hurda (HEK)' && a.karar!=='Kullanıma Alındı').length;
+  const today_dt = new Date(today());
+  const gecikmis = DB.kalibrasyon.filter(k => {
+    if(!k.sonBakim) return false;
+    const next = new Date(k.sonBakim);
+    if(isNaN(next.getTime())) return false;
+    next.setMonth(next.getMonth() + (k.periyot||12));
+    return next < today_dt;
+  }).length;
+
+  document.getElementById('s-total').innerHTML = `${total}<span class="stat-unit">çeşit</span>`;
+  document.getElementById('s-kritik').innerHTML = `${kritik}<span class="stat-unit">kalem</span>`;
+  document.getElementById('s-arizali').innerHTML = `${arizali}<span class="stat-unit">parça</span>`;
+  document.getElementById('s-bakim').innerHTML = `${gecikmis}<span class="stat-unit">cihaz</span>`;
+  document.getElementById('arBadge').textContent = arizali;
+  document.getElementById('kalBadge').textContent = gecikmis;
+
+  // Kritik stok tablosu
+  const krit = DB.envanter.filter(e => e.stok <= e.min).slice(0,8);
+  document.getElementById('tbl-kritik').innerHTML = krit.map(e => {
+    const d = getStokDurum(e.stok, e.min);
+    return `<tr><td><small style="color:var(--muted)">${esc(e.kod)}</small><br>${esc(e.ad)}</td><td><strong>${e.stok}</strong></td><td>${e.min}</td><td><span class="badge ${d.cls}">${d.label}</span></td></tr>`;
+  }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:16px">✅ Kritik stok yok</td></tr>';
+
+  // Son 7 hareket
+  document.getElementById('tbl-sonhareket').innerHTML = DB.hareketler.slice(-7).reverse().map(h =>
+    `<tr><td>${fmtDate(h.tarih)}</td><td>${esc(h.malKod)}</td>
+    <td><span class="badge ${h.tur==='Giriş'?'badge-green':'badge-red'}">${esc(h.tur)}</span></td>
+    <td>${h.miktar} ${esc(h.birim)}</td></tr>`
+  ).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:16px">Henüz hareket yok</td></tr>';
+
+  // Tamirdeki ekipmanlar
+  document.getElementById('tbl-tamirde').innerHTML = DB.arizali.filter(a => a.karar==='Tamirde' || a.karar==='Parça Bekliyor').map(a => {
+    const gun = daysDiff(a.gonderimTarih || a.arizaTarih, today());
+    return `<tr><td>${esc(a.seriNo)}</td><td>${esc(a.malAd)}</td>
+      <td><span class="badge badge-yellow">${esc(a.karar)}</span></td>
+      <td><span style="color:${gun>30?'var(--red)':'inherit'}">${gun} gün</span></td></tr>`;
+  }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:16px">✅ Tamirde yok</td></tr>';
+
+  // Yaklaşan bakımlar
+  document.getElementById('tbl-yaklasan').innerHTML = DB.kalibrasyon.map(k => {
+    if(!k.sonBakim) return '';
+    const next = new Date(k.sonBakim);
+    if(isNaN(next.getTime())) return '';
+    next.setMonth(next.getMonth() + (k.periyot||12));
+    const gun = daysDiff(today(), next.toISOString().split('T')[0]);
+    let cls='badge-green', lbl='✅ Yapıldı';
+    if(gun<0){ cls='badge-red'; lbl='⛔ Gecikmiş'; }
+    else if(gun<30){ cls='badge-yellow'; lbl='🟡 Yaklaşıyor'; }
+    return `<tr><td>${esc(k.malAd)}</td><td>${esc(k.bakimTur)}</td><td>${fmtDate(next)}</td>
+      <td><span class="badge ${cls}">${lbl}</span></td></tr>`;
+  }).filter(r=>r).slice(0,6).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ENVANTER
+// ═══════════════════════════════════════════════════════════════
+
+function renderEnvanter(){
+  const q = (document.getElementById('envSearch')?.value||'').toLowerCase();
+  const kat = document.getElementById('envKatFilter')?.value||'';
+  const durum = document.getElementById('envDurumFilter')?.value||'';
+  
+  // Kategori filtre dropdown doldur
+  const katSel = document.getElementById('envKatFilter');
+  const katlar = [...new Set(DB.envanter.map(e => e.kategori))];
+  if(katSel && katSel.options.length <= 1){
+    katlar.forEach(k => { const o = document.createElement('option'); o.value=k; o.textContent=k; katSel.appendChild(o); });
+  }
+  
+  let rows = DB.envanter.filter(e => {
+    const d = getStokDurum(e.stok, e.min).label;
+    var qMatch = !q || 
+      e.ad.toLowerCase().includes(q) || 
+      e.kod.toLowerCase().includes(q) || 
+      (e.barkod||'').toLowerCase().includes(q) ||
+      (e.model||'').toLowerCase().includes(q) ||
+      (e.tedarikci||'').toLowerCase().includes(q) ||
+      (e.sorumluKisi||'').toLowerCase().includes(q) ||
+      DB.serino.some(function(s){ return s.malKod === e.kod && s.seriNo.toLowerCase().includes(q); });
+    if(durum === 'KRITIK_TUKENDI') return qMatch && (!kat || e.kategori===kat) && (d.includes('KRİTİK') || d.includes('TÜKENDİ'));
+    return qMatch && (!kat || e.kategori===kat) && (!durum || d.includes(durum));
+  });
+  
+  document.getElementById('envCount').textContent = `${rows.length} malzeme`;
+  document.getElementById('envBody').innerHTML = rows.map(e => {
+    const d = getStokDurum(e.stok, e.min);
+    const canEdit = can('edit');
+    const seriCount = DB.serino.filter(s => s.malKod === e.kod).length;
+    return `<tr>
+      <td>${esc(e.kod)}</td><td>${esc(e.ad)}</td><td>${esc(e.kategori)}</td>
+      <td style="font-size:11px">${esc(e.konum)}</td><td>${esc(e.birim)}</td>
+      <td>${e.min}</td><td>${e.max}</td>
+      <td><strong style="color:${e.stok<=0?'var(--red)':e.stok<=e.min?'#d97706':'inherit'}">${e.stok}</strong></td>
+      <td><span class="badge ${d.cls}">${d.label}</span></td>
+      <td>${getKritiklik(e.kritiklik)}</td>
+      <td><span class="badge badge-blue">${seriCount}</span></td>
+      <td>${canEdit?`<button class="btn btn-secondary btn-sm btn-icon" onclick="openEnvanterModal(${e.id})" title="Düzenle">✏️</button>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteRecord('envanter',${e.id})" title="Sil">🗑️</button>
+        <button class="btn btn-secondary btn-sm btn-icon" onclick="showItemQR('${esc(e.kod)}')" title="QR/Barkod">🏷️</button>`:'–'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Envanter Modal
+function openEnvanterModal(id){
+  if(!can('edit') && !can('stockIn')){ showToast('⛔ Yetkiniz yok','error'); return; }
+  editingId = id||null;
+  const e = id ? DB.envanter.find(x=>x.id===id) : {};
+  const kat = DB.ayarlar.kategoriler.map(k => `<option ${e.kategori===k?'selected':''}>${esc(k)}</option>`).join('');
+  const birim = DB.ayarlar.birimler.map(b => `<option ${e.birim===b?'selected':''}>${esc(b)}</option>`).join('');
+  const persOpt = DB.personelFormu.map(p => `<option ${e.sorumluKisi===(p.ad+' '+p.soyad)?'selected':''}>${esc(p.ad+' '+p.soyad)}</option>`).join('');
+  // Konum önerileri: depolar + mevcut konumlar
+  const konumlar = [...new Set([
+    ...(DB.ayarlar.depolar||[]),
+    ...DB.envanter.filter(x=>x.konum).map(x=>x.konum)
+  ])];
+  const konumDatalist = konumlar.map(k=>`<option value="${esc(k)}">`).join('');
+  
+  openModal(id?'✏️ Malzeme Düzenle':'➕ Yeni Malzeme Ekle',`
+  <div class="form-grid">
+    <div class="form-group"><label class="required">Malzeme Kodu</label><input class="form-control" id="f-kod" value="${esc(e.kod||'')}" placeholder="SIG-EL-XXXX" ${id?'readonly':''}></div>
+    <div class="form-group"><label class="required">Malzeme Adı</label><input class="form-control" id="f-ad" value="${esc(e.ad||'')}"></div>
+    <div class="form-group"><label class="required">Kategori</label><select class="form-control" id="f-kat"><option value="">Seçin</option>${kat}</select></div>
+    <div class="form-group"><label>Alt Kategori</label><input class="form-control" id="f-altkat" value="${esc(e.altkat||'')}"></div>
+    <div class="form-group"><label class="required">Birim</label><select class="form-control" id="f-birim"><option value="">Seçin</option>${birim}</select></div>
+    <div class="form-group"><label class="required">Konum</label>
+      <input class="form-control" id="f-konum" value="${esc(e.konum||'')}" placeholder="Ör: Ön Depo – A1 – Raf 2" list="konumListesi" autocomplete="off">
+      <datalist id="konumListesi">${konumDatalist}</datalist>
+    </div>
+    <div class="form-group"><label class="required">Min Stok</label><input class="form-control" id="f-min" type="number" value="${e.min||0}" min="0"></div>
+    <div class="form-group"><label class="required">Max Stok</label><input class="form-control" id="f-max" type="number" value="${e.max||0}" min="0"></div>
+    <div class="form-group"><label class="required">Mevcut Stok</label><input class="form-control" id="f-stok" type="number" value="${e.stok!=null?e.stok:0}"></div>
+    <div class="form-group"><label>Kritiklik</label><select class="form-control" id="f-kritiklik"><option value="">Seçin</option><option ${e.kritiklik==='A'?'selected':''}>A</option><option ${e.kritiklik==='B'?'selected':''}>B</option><option ${e.kritiklik==='C'?'selected':''}>C</option></select></div>
+    <div class="form-group"><label>Tedarikçi</label><input class="form-control" id="f-tedarikci" value="${esc(e.tedarikci||'')}"></div>
+    <div class="form-group"><label>Son Alım</label><input class="form-control" id="f-alimtarih" type="date" value="${e.sonAlim||''}"></div>
+    <div class="form-group"><label>Fiyat (₺)</label><input class="form-control" id="f-fiyat" type="number" value="${e.fiyat||''}"></div>
+    <div class="form-group"><label>Model</label><input class="form-control" id="f-model" value="${esc(e.model||'')}"></div>
+    <div class="form-group"><label>Sorumlu Kişi</label><select class="form-control" id="f-sorumlu"><option value="">Seçin</option>${persOpt}</select></div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label>Notlar</label><textarea class="form-control" id="f-notlar" rows="2">${esc(e.notlar||'')}</textarea></div>`);
+  currentModal = 'envanter';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  HAREKETLER
+// ═══════════════════════════════════════════════════════════════
+
+function renderHareketler(){
+  const q = (document.getElementById('harSearch')?.value||'').toLowerCase();
+  const tur = document.getElementById('harTurFilter')?.value||'';
+  const zaman = document.getElementById('harZamanFilter')?.value||'';
+  const now = new Date();
+  
+  let rows = DB.hareketler.filter(h => {
+    if(q && !h.malAd.toLowerCase().includes(q) && !h.malKod.toLowerCase().includes(q) && !(h.alanKisi||'').toLowerCase().includes(q) && !(h.personel||'').toLowerCase().includes(q) && !(h.belge||'').toLowerCase().includes(q)) return false;
+    if(tur && h.tur!==tur) return false;
+    if(zaman && h.tarih){
+      const ht = new Date(h.tarih);
+      if(zaman==='7'){ const d7=new Date(now); d7.setDate(d7.getDate()-7); if(ht<d7) return false; }
+      else if(zaman==='30'){ const d30=new Date(now); d30.setDate(d30.getDate()-30); if(ht<d30) return false; }
+      else if(zaman==='month'){ const ay=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`; if(!h.tarih.startsWith(ay)) return false; }
+    }
+    return true;
+  }).reverse();
+  
+  const countEl = document.getElementById('harCount');
+  if(countEl) countEl.textContent = `${rows.length} kayıt`;
+  
+  document.getElementById('harBody').innerHTML = rows.map(h => `<tr>
+    <td>${fmtDate(h.tarih)}</td><td><code style="font-size:11px">${esc(h.belge)}</code></td>
+    <td style="color:var(--tcdd-blue);font-size:11px">${esc(h.malKod)}</td><td>${esc(h.malAd)}</td>
+    <td><span class="badge ${h.tur==='Giriş'?'badge-green':h.tur==='Çıkış'?'badge-red':'badge-blue'}">${esc(h.tur)}</span></td>
+    <td><strong>${h.miktar}</strong></td><td>${esc(h.birim)}</td>
+    <td>${esc(h.personel)}</td><td style="font-size:11px">${esc(h.konum||h.teknikBina||h.istasyon||'–')}</td>
+    <td>${esc(h.alanKisi||'–')}</td><td style="font-size:11px">${esc(h.notlar||'–')}</td>
+  </tr>`).join('');
+}
+
+function openHarModal(prefillMalKod){
+  if(!can('stockIn') && !can('stockOut')){ showToast('⛔ Yetkiniz yok','error'); return; }
+  const malList = DB.envanter.map(e => `<option value="${esc(e.kod)}" ${prefillMalKod===e.kod?'selected':''}>${esc(e.kod)} – ${esc(e.ad)}</option>`).join('');
+  const persOpt = DB.personelFormu.map(p => `<option>${esc(p.ad+' '+p.soyad)}</option>`).join('') || DB.kullanicilar.map(u => `<option>${esc(u.name)}</option>`).join('');
+  const turler = DB.ayarlar.islemturleri.map(t => `<option>${esc(t)}</option>`).join('');
+  const tbList = (DB.ayarlar.teknikBinalar||[]).map(t => `<option>${esc(t)}</option>`).join('');
+  const depoList = (DB.ayarlar.depolar||[]).map(d => `<option>${esc(d)}</option>`).join('');
+  
+  openModal('➕ Yeni Stok Hareketi',`
+  <div class="form-grid">
+    <div class="form-group"><label class="required">İşlem Türü</label><select class="form-control" id="h-tur" onchange="autoFillBirim()">${turler}</select></div>
+    <div class="form-group"><label class="required">Tarih</label><input class="form-control" id="h-tarih" type="date" value="${today()}"></div>
+    <div class="form-group"><label class="required">Malzeme</label><select class="form-control" id="h-mal" onchange="autoFillBirim();harDepoChange()">${malList}</select></div>
+    <div class="form-group"><label class="required">Miktar</label><input class="form-control" id="h-miktar" type="number" value="1" min="1"></div>
+    <div class="form-group"><label>Birim</label><input class="form-control" id="h-birim" readonly></div>
+    <div class="form-group"><label>Belge No</label><input class="form-control" id="h-belge" value="BLG-${Date.now().toString().slice(-6)}"></div>
+    <div class="form-group"><label class="required">Personel</label><select class="form-control" id="h-pers">${persOpt}</select></div>
+    <div class="form-group"><label>Alan Kişi</label><input class="form-control" id="h-alan" placeholder="Malzemeyi alan kişi"></div>
+    <div class="form-group"><label class="required">Depo Bölümü</label>
+      <select class="form-control" id="h-depo" onchange="harDepoChange()">
+        <option value="">— Depo Seçin —</option>${depoList}
+      </select>
+    </div>
+    <div class="form-group"><label>Raf / Bölüm</label>
+      <select class="form-control" id="h-raf">
+        <option value="">— Önce Depo Seçin —</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Teknik Bina / İstasyon</label><select class="form-control" id="h-tb"><option value="">Seçin</option><option value="DEPO">DEPO</option>${tbList}</select></div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label>Notlar</label><textarea class="form-control" id="h-not" rows="2"></textarea></div>
+  <div class="alert alert-yellow" style="margin-top:8px"><span>⚠️</span><span id="stokUyari">Malzeme seçin</span></div>`);
+  currentModal = 'hareket';
+  autoFillBirim();
+  if(prefillMalKod) harDepoChange();
+}
+
+function harDepoChange(){
+  const depo = (document.getElementById('h-depo')||{}).value || '';
+  const rafSel = document.getElementById('h-raf');
+  if(!rafSel) return;
+  if(!depo){ rafSel.innerHTML='<option value="">— Önce Depo Seçin —</option>'; return; }
+  const depoObj = (DB.ayarlar.depoYapi||[]).find(function(d){ return d.ad===depo; });
+  const raflar = depoObj ? depoObj.raflar.slice().sort() : [];
+  rafSel.innerHTML = '<option value="">— Tüm Depo —</option>' + raflar.map(function(r){ return '<option>'+esc(r)+'</option>'; }).join('');
+  // Seçili malzemenin konumuna göre raf öner
+  var malKod = (document.getElementById('h-mal')||{}).value;
+  var mal = DB.envanter.find(function(e){ return e.kod===malKod; });
+  if(mal && mal.konum && mal.konum.includes(depo)){
+    var parts = mal.konum.split('–').map(function(p){ return p.trim(); });
+    if(parts.length>=2){
+      var raf = parts[1].split(' ')[0];
+      if(raflar.includes(raf)) rafSel.value = raf;
+    }
+  }
+}
+
+function autoFillBirim(){
+  const kod = val('h-mal');
+  const e = DB.envanter.find(x => x.kod===kod);
+  if(e){
+    setVal('h-birim', e.birim);
+    var stokEl=document.getElementById('stokUyari');
+    if(stokEl){ stokEl.textContent = `Mevcut stok: ${e.stok} ${e.birim} | Konum: ${e.konum||'–'}`; stokEl.style.color = e.stok<=0?'var(--red)':e.stok<=e.min?'#d97706':'inherit'; }
+    // Malzeme konumundan depoyu otomatik seç
+    if(e.konum){
+      var depoSel = document.getElementById('h-depo');
+      if(depoSel){
+        var parts = e.konum.split('–').map(function(p){return p.trim();});
+        var depoAd = parts[0];
+        var found = Array.from(depoSel.options).find(function(o){return o.value===depoAd;});
+        if(found){ depoSel.value = depoAd; harDepoChange(); }
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DEPO HARİTASI
+// ═══════════════════════════════════════════════════════════════
+
+function renderDepoHarita(){
+  // Ayarlardan kayıtlı depo yapılandırmasını al
+  if(!DB.ayarlar.depoYapi) DB.ayarlar.depoYapi = [
+    {ad:'Ön Depo', raflar:['A1','A2','A3','A4','A5'], icon:'⚡'},
+    {ad:'Arka Depo', raflar:['B1','B2','B3','B4','C1','C2','C3'], icon:'🔌'},
+    {ad:'Yan Alan', raflar:['D1','D2','D3'], icon:'⚙️'}
+  ];
+  
+  // Envanterden ek depo/raf bilgilerini otomatik ekle
+  DB.envanter.forEach(e => {
+    const loc = e.konum || '';
+    const parts = loc.split('–').map(p => p.trim());
+    if(parts.length >= 2){
+      const depoAd = parts[0];
+      const raf = parts[1].split(' ')[0];
+      let depo = DB.ayarlar.depoYapi.find(d => d.ad === depoAd);
+      if(!depo){ depo = {ad:depoAd, raflar:[], icon:'📦'}; DB.ayarlar.depoYapi.push(depo); }
+      if(!depo.raflar.includes(raf)) depo.raflar.push(raf);
+    }
+  });
+  
+  const canEdit = can('edit') || can('settings');
+  
+  document.getElementById('depotMap').innerHTML = DB.ayarlar.depoYapi.map((z,zi) => {
+    const count = DB.envanter.filter(e => (e.konum||'').includes(z.ad)).length;
+    const totalStok = DB.envanter.filter(e => (e.konum||'').includes(z.ad)).reduce((s,e) => s + (Math.max(0,Number(e.stok))||0), 0);
+    return `<div class="depot-zone">
+      <div class="depot-zone-header">
+        <div class="depot-zone-title">${z.icon||'📦'} ${esc(z.ad)}</div>
+        <div>
+          <span class="badge badge-blue">${count} malzeme</span>
+          <span class="badge badge-green">${totalStok} adet</span>
+          ${canEdit?`<button class="btn btn-secondary btn-sm btn-icon" onclick="addRafToDepo(${zi})" title="Raf ekle" style="margin-left:4px">＋</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="removeDepo(${zi})" title="Depo sil">✕</button>`:''}
+        </div>
+      </div>
+      <div class="depot-shelves">
+        ${z.raflar.sort().map(s => {
+          const shelfCount = DB.envanter.filter(e => (e.konum||'').includes(s)).length;
+          const shelfStok = DB.envanter.filter(e => (e.konum||'').includes(s)).reduce((sm,e) => sm + (Math.max(0,Number(e.stok))||0), 0);
+          return `<div class="shelf-btn" onclick="showShelf('${esc(z.ad)}','${esc(s)}')" title="${shelfCount} çeşit, ${shelfStok} adet">${esc(s)} <small>(${shelfCount}/${shelfStok})</small></div>`;
+        }).join('')}
+        ${z.raflar.length===0?'<span style="font-size:11px;color:var(--muted)">Henüz raf eklenmedi</span>':''}
+      </div>
+    </div>`;
+  }).join('') || '<div style="text-align:center;color:var(--muted);padding:40px">Henüz depo tanımlanmadı. Yukarıdaki "＋ Depo/Raf Ekle" butonuyla ekleyin.</div>';
+}
+
+function showShelf(zone, shelf){
+  const items = DB.envanter.filter(e => (e.konum||'').includes(shelf));
+  document.getElementById('shelfTitle').textContent = `📦 ${zone} – ${shelf} Raf İçeriği`;
+  document.getElementById('shelfBody').innerHTML = items.length ? items.map(e => {
+    const d = getStokDurum(e.stok, e.min);
+    return `<tr><td>${esc(e.kod)}</td><td>${esc(e.ad)}</td><td>${shelf}</td>
+      <td><strong>${e.stok}</strong> ${esc(e.birim)}</td>
+      <td><span class="badge ${d.cls}">${d.label}</span></td></tr>`;
+  }).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:14px">Bu rafta kayıtlı malzeme yok</td></tr>`;
+  document.getElementById('shelfDetail').style.display = 'block';
+}
+
+function addDepoZone(){
+  const ad = prompt('Yeni depo/alan adı (ör: Dış Depo):');
+  if(!ad || !ad.trim()) return;
+  const raf = prompt('Raf kodları (virgülle ayırın, ör: E1,E2,E3):');
+  const raflar = raf ? raf.split(',').map(r => r.trim()).filter(r => r) : [];
+  if(!DB.ayarlar.depoYapi) DB.ayarlar.depoYapi = [];
+  
+  // Aynı isimde var mı kontrol
+  if(DB.ayarlar.depoYapi.find(d => d.ad === ad.trim())){
+    showToast('❌ Bu isimde depo zaten var','error'); return;
+  }
+  
+  DB.ayarlar.depoYapi.push({ad:ad.trim(), raflar, icon:'📦'});
+  // Depolar listesine de ekle
+  if(!DB.ayarlar.depolar.includes(ad.trim())) DB.ayarlar.depolar.push(ad.trim());
+  addLog('Depo Haritası','Yeni Depo',`${ad.trim()} (${raflar.length} raf) eklendi`);
+  saveToLS(); renderDepoHarita();
+  showToast(`✅ "${ad.trim()}" deposu ${raflar.length} raf ile eklendi`,'success');
+}
+
+function addRafToDepo(depoIdx){
+  if(!DB.ayarlar.depoYapi || !DB.ayarlar.depoYapi[depoIdx]) return;
+  const depo = DB.ayarlar.depoYapi[depoIdx];
+  const raf = prompt(`"${depo.ad}" deposuna eklenecek raf kodları (virgülle, ör: F1,F2):`);
+  if(!raf || !raf.trim()) return;
+  const yeniRaflar = raf.split(',').map(r => r.trim()).filter(r => r);
+  let eklenen = 0;
+  yeniRaflar.forEach(r => {
+    if(!depo.raflar.includes(r)){ depo.raflar.push(r); eklenen++; }
+  });
+  if(eklenen === 0){ showToast('⚠️ Bu raflar zaten mevcut','error'); return; }
+  addLog('Depo Haritası','Raf Ekleme',`${depo.ad}: ${yeniRaflar.join(', ')} eklendi`);
+  saveToLS(); renderDepoHarita();
+  showToast(`✅ ${eklenen} raf "${depo.ad}" deposuna eklendi`,'success');
+}
+
+function removeDepo(depoIdx){
+  if(!DB.ayarlar.depoYapi || !DB.ayarlar.depoYapi[depoIdx]) return;
+  const depo = DB.ayarlar.depoYapi[depoIdx];
+  const count = DB.envanter.filter(e => (e.konum||'').includes(depo.ad)).length;
+  if(count > 0){
+    if(!confirm(`"${depo.ad}" deposunda ${count} malzeme kayıtlı! Yine de silmek istiyor musunuz?`)) return;
+  } else {
+    if(!confirm(`"${depo.ad}" deposunu silmek istiyor musunuz?`)) return;
+  }
+  DB.ayarlar.depoYapi.splice(depoIdx, 1);
+  addLog('Depo Haritası','Depo Silme',`${depo.ad} silindi`);
+  saveToLS(); renderDepoHarita();
+  showToast('🗑️ Depo silindi');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SERİ NO TAKİBİ
+// ═══════════════════════════════════════════════════════════════
+
+function renderSeriNo(){
+  const q = (document.getElementById('snSearch')?.value||'').toLowerCase();
+  const durum = document.getElementById('snDurumFilter')?.value||'';
+  let rows = DB.serino.filter(s => (!q || s.seriNo.toLowerCase().includes(q) || s.malAd.toLowerCase().includes(q) || (s.alanKisi||'').toLowerCase().includes(q) || (s.malKod||'').toLowerCase().includes(q)) && (!durum || s.durum===durum));
+  const durumCls = {Depoda:'badge-green',Sahada:'badge-blue',Arızalı:'badge-red',Hurda:'badge-gray',Tamirde:'badge-yellow'};
+  
+  document.getElementById('snBody').innerHTML = rows.map(s => `<tr>
+    <td><span class="badge badge-blue" onclick="navigate('envanter');document.getElementById('envSearch').value='${esc(s.malKod)}';renderEnvanter();" style="cursor:pointer" title="Envantere git">${esc(s.malKod)}</span></td><td>${esc(s.malAd)}</td>
+    <td><code style="font-size:11px;background:#f1f5f9;padding:2px 6px;border-radius:4px">${esc(s.seriNo)}</code></td>
+    <td><span class="badge ${durumCls[s.durum]||'badge-gray'}">${esc(s.durum)}</span></td>
+    <td style="font-size:11px">${esc(s.konum)}</td>
+    <td style="font-size:11px;font-weight:600;color:var(--tcdd-blue)">${esc(s.teknikBina||'DEPO')}</td>
+    <td>${esc(s.alanKisi||s.sorumlu||'–')}</td>
+    <td style="font-size:11px">${esc(s.versiyon||'–')}</td>
+    <td>${s.bakimSayisi||0}</td>
+    <td style="font-size:11px">${esc(s.notlar||'–')}</td>
+    <td><button class="btn btn-secondary btn-sm btn-icon" onclick="openSeriNoModal(${s.id})">✏️</button>
+        <button class="btn btn-secondary btn-sm btn-icon" onclick="showItemQR('${esc(s.seriNo)}')" title="QR">🏷️</button>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteRecord('serino',${s.id})">🗑️</button></td>
+  </tr>`).join('');
+}
+
+function openSeriNoModal(id){
+  editingId = id||null;
+  const s = id ? DB.serino.find(x=>x.id===id) : {};
+  const malList = DB.envanter.map(e => `<option value="${esc(e.kod)}" ${s.malKod===e.kod?'selected':''}>${esc(e.kod)} – ${esc(e.ad)}</option>`).join('');
+  const tbList = (DB.ayarlar.teknikBinalar||[]).map(t => `<option ${s.teknikBina===t?'selected':''}>${esc(t)}</option>`).join('');
+  const persOpt = DB.personelFormu.map(p => `<option ${s.alanKisi===(p.ad+' '+p.soyad)?'selected':''}>${esc(p.ad+' '+p.soyad)}</option>`).join('');
+  
+  openModal(id?'✏️ Seri No Düzenle':'➕ Yeni Seri No',`
+  <div class="form-grid">
+    <div class="form-group"><label class="required">Malzeme</label><select class="form-control" id="sn-mal">${malList}</select></div>
+    <div class="form-group"><label class="required">Seri Numarası</label><input class="form-control" id="sn-no" value="${esc(s.seriNo||'')}" ${id?'readonly':''}></div>
+    <div class="form-group"><label>Durum</label><select class="form-control" id="sn-durum">
+      ${['Depoda','Sahada','Arızalı','Hurda','Tamirde'].map(d => `<option ${s.durum===d?'selected':''}>${d}</option>`).join('')}
+    </select></div>
+    <div class="form-group"><label>Konum</label><input class="form-control" id="sn-konum" value="${esc(s.konum||'')}"></div>
+    <div class="form-group"><label>Yer/Konum</label><select class="form-control" id="sn-tb"><option value="DEPO">DEPO</option>${tbList}</select></div>
+    <div class="form-group"><label>Alan Kişi</label><select class="form-control" id="sn-alan"><option value="">Seçin</option>${persOpt}</select></div>
+    <div class="form-group"><label>Giriş Tarihi</label><input class="form-control" id="sn-giris" type="date" value="${s.giris||today()}"></div>
+    <div class="form-group"><label>HW/SW Versiyon</label><input class="form-control" id="sn-ver" value="${esc(s.versiyon||'')}"></div>
+    <div class="form-group"><label>Sorumlu</label><input class="form-control" id="sn-sor" value="${esc(s.sorumlu||'')}"></div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label>Notlar</label><textarea class="form-control" id="sn-not" rows="2">${esc(s.notlar||'')}</textarea></div>`);
+  currentModal = 'serino';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ARIZALI - TAMİRDE (Fotoğraf/Video destekli)
+// ═══════════════════════════════════════════════════════════════
+
+function renderArizali(){
+  const q = (document.getElementById('arzSearch')?.value||'').toLowerCase();
+  const karar = document.getElementById('arzKararFilter')?.value||'';
+  let rows = DB.arizali.filter(a => (!q || a.malAd.toLowerCase().includes(q) || (a.seriNo||'').toLowerCase().includes(q) || (a.malKod||'').toLowerCase().includes(q) || (a.arizaNo||'').toLowerCase().includes(q) || (a.tamirMerkezi||'').toLowerCase().includes(q) || (a.aciklama||'').toLowerCase().includes(q)) && (!karar || a.karar===karar));
+  const kararCls = {'Tamirde':'badge-yellow','Tamir Edildi':'badge-green','Hurda (HEK)':'badge-gray','Kullanıma Alındı':'badge-blue','Parça Bekliyor':'badge-red'};
+  
+  document.getElementById('arzBody').innerHTML = rows.map(a => {
+    const gun = (a.gonderimTarih || a.arizaTarih) ? daysDiff(a.gonderimTarih || a.arizaTarih, today()) : 0;
+    const hasMedia = (a.fotograflar && a.fotograflar.length > 0) || (a.videolar && a.videolar.length > 0);
+    return `<tr>
+      <td>${esc(a.malKod||a.malAd)}</td>
+      <td><code style="font-size:11px">${esc(a.seriNo)}</code></td>
+      <td>${fmtDate(a.arizaTarih)}</td><td>${fmtDate(a.gonderimTarih)||'–'}</td><td>${fmtDate(a.tahminiDonus)||'–'}</td>
+      <td><strong style="color:${gun>30?'var(--red)':'inherit'}">${gun}</strong></td>
+      <td style="font-size:11px;max-width:150px;overflow:hidden;text-overflow:ellipsis">${esc(a.aciklama)}</td>
+      <td style="font-size:11px">${esc(a.tamirMerkezi)}</td>
+      <td><span class="badge ${kararCls[a.karar]||'badge-gray'}">${esc(a.karar||'Belirsiz')}</span></td>
+      <td>${hasMedia?'📎':''}</td>
+      <td><button class="btn btn-secondary btn-sm btn-icon" onclick="openArizaModal(${a.id})">✏️</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="deleteRecord('arizali',${a.id})">🗑️</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function openArizaModal(id){
+  if(!can('fault')){ showToast('⛔ Yetkiniz yok','error'); return; }
+  editingId = id||null;
+  const a = id ? DB.arizali.find(x=>x.id===id) : {};
+  const malList = DB.envanter.map(e => `<option value="${esc(e.kod)}" ${a.malKod===e.kod?'selected':''}>${esc(e.kod)} – ${esc(e.ad)}</option>`).join('');
+  const kararOpt = ['Tamirde','Tamir Edildi','Hurda (HEK)','Kullanıma Alındı','Parça Bekliyor'].map(k => `<option ${a.karar===k?'selected':''}>${esc(k)}</option>`).join('');
+  
+  openModal(id?'✏️ Arıza Düzenle':'➕ Yeni Arıza Kaydı',`
+  <div class="form-grid">
+    <div class="form-group" style="grid-column:span 2">
+      <label class="required">Seri No</label>
+      <input class="form-control" id="az-seri" value="${esc(a.seriNo||'')}" placeholder="Seri numarasını yazın..." oninput="arizaAutoFill(this.value)">
+      <small style="color:var(--muted)">Seri no girilince malzeme adı otomatik dolar</small>
+    </div>
+    <div class="form-group"><label>Malzeme Adı</label><input class="form-control" id="az-malad" value="${esc(a.malAd||'')}" readonly placeholder="Seri no girilince otomatik gelir"></div>
+    <div class="form-group"><label>Malzeme Kodu</label><select class="form-control" id="az-kod">${malList}</select></div>
+    <div class="form-group"><label class="required">Arıza Tarihi</label><input class="form-control" id="az-artar" type="date" value="${a.arizaTarih||today()}"></div>
+    <div class="form-group"><label>Gönderim Tarihi</label><input class="form-control" id="az-gontar" type="date" value="${a.gonderimTarih||''}"></div>
+    <div class="form-group"><label>Tahmini Dönüş</label><input class="form-control" id="az-donus" type="date" value="${a.tahminiDonus||''}"></div>
+    <div class="form-group"><label>Arıza No</label><input class="form-control" id="az-no" value="${esc(a.arizaNo||'ARZ-'+Date.now().toString().slice(-6))}"></div>
+    <div class="form-group"><label>Tamir Merkezi</label><input class="form-control" id="az-tamir" value="${esc(a.tamirMerkezi||'')}"></div>
+    <div class="form-group"><label class="required">Karar / Sonuç</label><select class="form-control" id="az-karar">${kararOpt}</select></div>
+    <div class="form-group"><label>Karar Tarihi</label><input class="form-control" id="az-kartar" type="date" value="${a.kararTarih||''}"></div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label class="required">Arıza Açıklaması</label><textarea class="form-control" id="az-acik" rows="2">${esc(a.aciklama||'')}</textarea></div>
+  <div class="form-group" style="margin-top:8px">
+    <label>Fotoğraf Ekle (isteğe bağlı)</label>
+    <input type="file" id="az-foto" accept="image/*" multiple capture="environment" class="form-control" style="padding:6px">
+    <small style="color:var(--muted)">Birden fazla fotoğraf seçebilirsiniz.</small>
+  </div>
+  <div class="form-group" style="margin-top:8px">
+    <label>Video Ekle (isteğe bağlı)</label>
+    <input type="file" id="az-video" accept="video/*" capture="environment" class="form-control" style="padding:6px">
+  </div>
+  <div class="form-group" style="margin-top:8px"><label>Notlar</label><textarea class="form-control" id="az-not" rows="2">${esc(a.notlar||'')}</textarea></div>`);
+  currentModal = 'ariza';
+  // İlk yüklemede seri noya göre doldur
+  if(a.seriNo) arizaAutoFill(a.seriNo);
+}
+
+function arizaAutoFill(seriNo){
+  if(!seriNo) return;
+  const sn = DB.serino.find(s => s.seriNo.toLowerCase() === seriNo.toLowerCase());
+  if(sn){
+    const malAdEl = document.getElementById('az-malad');
+    const malKodEl = document.getElementById('az-kod');
+    if(malAdEl) malAdEl.value = sn.malAd||'';
+    if(malKodEl) malKodEl.value = sn.malKod||'';
+  } else {
+    // Sadece malzeme adını temizle, kodu değiştirme
+    const malAdEl = document.getElementById('az-malad');
+    if(malAdEl && seriNo.length < 3) malAdEl.value = '';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  KALİBRASYON / BAKIM
+// ═══════════════════════════════════════════════════════════════
+
+function renderKalibrasyon(){
+  const q = (document.getElementById('kalSearch')?.value||'').toLowerCase();
+  const durumF = document.getElementById('kalDurumFilter')?.value||'';
+  
+  const kals = DB.kalibrasyon.filter(k => {
+    if(!k.sonBakim) return false;
+    // Metin araması
+    var qMatch = !q || 
+      k.malAd.toLowerCase().includes(q) || 
+      (k.seriNo||'').toLowerCase().includes(q) || 
+      (k.malKod||'').toLowerCase().includes(q) || 
+      (k.sorumlu||'').toLowerCase().includes(q) ||
+      (k.bakimTur||'').toLowerCase().includes(q);
+    if(!qMatch) return false;
+    // Durum filtresi
+    if(!durumF) return true;
+    const next = new Date(k.sonBakim);
+    if(isNaN(next.getTime())) return false;
+    next.setMonth(next.getMonth() + (k.periyot||12));
+    const gun = daysDiff(today(), next.toISOString().split('T')[0]);
+    var lbl = gun<0 ? 'Gecikmiş' : gun<30 ? 'Yaklaşıyor' : 'Yapıldı';
+    var durumFClean = durumF.replace(/[✅⛔🟡\s]/g,'');
+    return lbl.includes(durumFClean);
+  });
+  document.getElementById('kalBody').innerHTML = kals.map(k => {
+    const next = new Date(k.sonBakim);
+    next.setMonth(next.getMonth() + (k.periyot||12));
+    const gun = daysDiff(today(), next.toISOString().split('T')[0]);
+    let cls='badge-green', lbl='✅ Yapıldı';
+    if(gun<0){ cls='badge-red'; lbl='⛔ Gecikmiş'; }
+    else if(gun<30){ cls='badge-yellow'; lbl='🟡 Yaklaşıyor'; }
+    return `<tr>
+      <td>${esc(k.malKod)}</td><td>${esc(k.malAd)}</td>
+      <td><code style="font-size:11px">${esc(k.seriNo)}</code></td><td>${esc(k.bakimTur)}</td>
+      <td>${k.periyot||12} ay</td><td>${fmtDate(k.sonBakim)}</td><td>${fmtDate(next)}</td>
+      <td><strong style="color:${gun<0?'var(--red)':gun<30?'#d97706':'var(--green)'}">${gun<0?Math.abs(gun)+' gün geçti':gun+' gün'}</strong></td>
+      <td><span class="badge ${cls}">${lbl}</span></td>
+      <td>${esc(k.sorumlu)}</td>
+      <td><button class="btn btn-secondary btn-sm btn-icon" onclick="openKalModal(${k.id})">✏️</button>
+          <button class="btn btn-success btn-sm" onclick="bakimYapildi(${k.id})">✔ Yapıldı</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="deleteRecord('kalibrasyon',${k.id})">🗑️</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function openKalModal(id){
+  editingId = id||null;
+  const k = id ? DB.kalibrasyon.find(x=>x.id===id) : {};
+  const malList = DB.envanter.map(e => `<option value="${esc(e.kod)}" ${k.malKod===e.kod?'selected':''}>${esc(e.kod)} – ${esc(e.ad)}</option>`).join('');
+  const persOpt = DB.personelFormu.map(p => `<option ${k.sorumlu===(p.ad+' '+p.soyad)?'selected':''}>${esc(p.ad+' '+p.soyad)}</option>`).join('');
+  
+  openModal(id?'✏️ Bakım Düzenle':'➕ Yeni Bakım/Kalibrasyon',`
+  <div class="form-grid">
+    <div class="form-group" style="grid-column:span 2">
+      <label class="required">Seri No</label>
+      <input class="form-control" id="kal-seri" value="${esc(k.seriNo||'')}" placeholder="Seri numarasını yazın..." oninput="kalAutoFill(this.value)">
+      <small style="color:var(--muted)">Seri no girilince malzeme otomatik seçilir</small>
+    </div>
+    <div class="form-group"><label class="required">Malzeme</label><select class="form-control" id="kal-mal">${malList}</select></div>
+    <div class="form-group"><label class="required">Bakım Türü</label><input class="form-control" id="kal-tur" value="${esc(k.bakimTur||'')}" list="bakimTurList">
+      <datalist id="bakimTurList"><option>Kalibrasyon</option><option>Periyodik Bakım</option><option>Akü Testi</option><option>Mekanik Bakım</option><option>Yazılım Güncelleme</option><option>Genel Kontrol</option></datalist>
+    </div>
+    <div class="form-group"><label class="required">Periyot (Ay)</label><input class="form-control" id="kal-per" type="number" value="${k.periyot||12}" min="1"></div>
+    <div class="form-group"><label class="required">Son Bakım</label><input class="form-control" id="kal-son" type="date" value="${k.sonBakim||today()}"></div>
+    <div class="form-group"><label>Sorumlu</label><select class="form-control" id="kal-sor"><option value="">Seçin</option>${persOpt}</select></div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label>Notlar</label><textarea class="form-control" id="kal-not" rows="2">${esc(k.notlar||'')}</textarea></div>`);
+  currentModal = 'kalibrasyon';
+  if(k.seriNo) kalAutoFill(k.seriNo);
+}
+
+function kalAutoFill(seriNo){
+  if(!seriNo || seriNo.length < 2) return;
+  const sn = DB.serino.find(s => s.seriNo.toLowerCase() === seriNo.toLowerCase());
+  if(sn){
+    const malEl = document.getElementById('kal-mal');
+    if(malEl) malEl.value = sn.malKod||'';
+  }
+}
+
+function bakimYapildi(id){
+  const k = DB.kalibrasyon.find(x=>x.id===id); if(!k) return;
+  k.sonBakim = today();
+  const sn = DB.serino.find(s => s.seriNo===k.seriNo);
+  if(sn) sn.bakimSayisi = (sn.bakimSayisi||0) + 1;
+  addLog('Kalibrasyon','Bakım Güncellendi',`${k.malAd} – ${k.seriNo} bakımı yapıldı`);
+  saveToLS(); renderKalibrasyon();
+  showToast('✅ Bakım tarihi güncellendi','success');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PERSONEL FORMU
+// ═══════════════════════════════════════════════════════════════
+
+function renderPersonelFormu(){
+  const q = (document.getElementById('persSearch')?.value||'').toLowerCase();
+  let rows = DB.personelFormu.filter(p => !q || (p.ad+' '+p.soyad).toLowerCase().includes(q) || (p.sicilNo||'').toLowerCase().includes(q));
+  
+  document.getElementById('persBody').innerHTML = rows.map(p => `<tr>
+    <td><strong>${esc(p.ad)} ${esc(p.soyad)}</strong></td>
+    <td><code>${esc(p.sicilNo)}</code></td>
+    <td>${esc(p.unvan)}</td><td>${esc(p.birim)}</td>
+    <td>${esc(p.telefon)}</td><td>${esc(p.eposta)}</td><td>${esc(p.gorev)}</td>
+    <td><button class="btn btn-secondary btn-sm btn-icon" onclick="openPersonelModal(${p.id})">✏️</button>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="deleteRecord('personelFormu',${p.id})">🗑️</button></td>
+  </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:16px">Henüz personel kaydı yok</td></tr>';
+}
+
+function openPersonelModal(id){
+  if(!can('personel') && !can('edit')){ showToast('⛔ Yetkiniz yok','error'); return; }
+  editingId = id||null;
+  const p = id ? DB.personelFormu.find(x=>x.id===id) : {};
+  
+  openModal(id?'✏️ Personel Düzenle':'➕ Yeni Personel Kaydı',`
+  <div class="form-grid">
+    <div class="form-group"><label class="required">Ad</label><input class="form-control" id="p-ad" value="${esc(p.ad||'')}"></div>
+    <div class="form-group"><label class="required">Soyad</label><input class="form-control" id="p-soyad" value="${esc(p.soyad||'')}"></div>
+    <div class="form-group"><label>Sicil No</label><input class="form-control" id="p-sicil" value="${esc(p.sicilNo||'')}"></div>
+    <div class="form-group"><label>Ünvan</label><select class="form-control" id="p-unvan">
+      <option value="">Seçin</option>
+      <option ${p.unvan==='Tekniker'?'selected':''}>Tekniker</option>
+      <option ${p.unvan==='Teknisyen'?'selected':''}>Teknisyen</option>
+      <option ${p.unvan==='Mühendis'?'selected':''}>Mühendis</option>
+      <option ${p.unvan==='Şef'?'selected':''}>Şef</option>
+      <option ${p.unvan==='Depo Sorumlusu'?'selected':''}>Depo Sorumlusu</option>
+      <option ${p.unvan==='Sürveyan'?'selected':''}>Sürveyan</option>
+      <option ${p.unvan==='Hat Bakım Onarım Memuru'?'selected':''}>Hat Bakım Onarım Memuru</option>
+      <option ${p.unvan==='İşçi'?'selected':''}>İşçi</option>
+      <option ${p.unvan==='Bakım Şefi'?'selected':''}>Bakım Şefi</option>
+      <option ${p.unvan==='Müdür'?'selected':''}>Müdür</option>
+    </select></div>
+    <div class="form-group"><label>Birim</label><input class="form-control" id="p-birim" value="${esc(p.birim||'SH Bakım')}"></div>
+    <div class="form-group"><label>Telefon</label><input class="form-control" id="p-tel" value="${esc(p.telefon||'')}" type="tel"></div>
+    <div class="form-group"><label>E-posta</label><input class="form-control" id="p-email" value="${esc(p.eposta||'')}" type="email"></div>
+    <div class="form-group"><label>Görev</label><input class="form-control" id="p-gorev" value="${esc(p.gorev||'')}"></div>
+  </div>
+  <div class="form-group" style="margin-top:10px"><label>Notlar</label><textarea class="form-control" id="p-not" rows="2">${esc(p.notlar||'')}</textarea></div>`);
+  currentModal = 'personel';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  KULLANICILAR, AYARLAR, LOG, YEDEKLEME
+// ═══════════════════════════════════════════════════════════════
+
+function renderKullanicilar(){
+  const rolCls = {'Yönetici':'badge-red','Depo Sorumlusu':'badge-blue','Görevli':'badge-yellow','İzleyici':'badge-gray'};
+  document.getElementById('userBody').innerHTML = DB.kullanicilar.map(u => `<tr>
+    <td><code>${esc(u.user)}</code></td><td>${esc(u.name)}</td>
+    <td><span class="badge ${rolCls[u.role]||'badge-gray'}">${esc(u.role)}</span></td>
+    <td style="font-size:11px">${esc(u.access)}</td>
+    <td style="font-size:11px">${u.lastLogin||'–'}</td>
+    <td><span class="badge ${(u.active===true||u.active==='true')?'badge-green':'badge-gray'}">${(u.active===true||u.active==='true')?'Aktif':'Pasif'}</span></td>
+    <td>${can('users')?`<button class="btn btn-secondary btn-sm btn-icon" onclick="openUserModal(${u.id})">✏️</button>
+      <button class="btn btn-danger btn-sm btn-icon" onclick="deleteRecord('kullanicilar',${u.id})">🗑️</button>`:'–'}</td>
+  </tr>`).join('');
+}
+
+function openUserModal(id){
+  if(!can('users')){ showToast('⛔ Yetkiniz yok','error'); return; }
+  editingId = id||null;
+  const u = id ? DB.kullanicilar.find(x=>x.id===id) : {};
+  const rolOpt = ['Yönetici','Depo Sorumlusu','Görevli','İzleyici'].map(r => `<option ${u.role===r?'selected':''}>${r}</option>`).join('');
+  openModal(id?'✏️ Kullanıcı Düzenle':'➕ Yeni Kullanıcı',`
+  <div class="form-grid">
+    <div class="form-group"><label class="required">Kullanıcı Adı</label><input class="form-control" id="u-user" value="${esc(u.user||'')}" autocomplete="off"></div>
+    <div class="form-group"><label class="required">Ad Soyad</label><input class="form-control" id="u-name" value="${esc(u.name||'')}"></div>
+    <div class="form-group"><label class="${id?'':'required'}">Şifre ${id?'(boş = değiştirme)':''}</label><input class="form-control" id="u-pass" type="password" autocomplete="new-password"></div>
+    <div class="form-group"><label>Rol</label><select class="form-control" id="u-rol">${rolOpt}</select></div>
+    <div class="form-group"><label>Depo Erişimi</label><input class="form-control" id="u-access" value="${esc(u.access||'Tüm Depolar')}"></div>
+    <div class="form-group"><label>Durum</label><select class="form-control" id="u-active"><option value="1" ${(u.active===true||u.active==='true')?'selected':''}>Aktif</option><option value="0" ${(u.active===false||u.active==='false')?'selected':''}>Pasif</option></select></div>
+  </div>
+  <div class="alert alert-yellow" style="margin-top:12px"><span>🔒</span><span>Şifreler güvenli biçimde saklanır ve listede gösterilmez.</span></div>`);
+  currentModal = 'kullanici';
+}
+
+function renderAyarlar(){
+  ['kategoriler','birimler','depolar','islemturleri','arizatipler','teknikBinalar'].forEach(k => {
+    const el = document.getElementById('list-'+k);
+    if(!el) return;
+    const items = DB.ayarlar[k] || [];
+    el.innerHTML = items.map((v,i) => `<li style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span>${esc(v)}</span>
+      ${can('settings')||can('edit')?`<button class="btn btn-danger btn-sm btn-icon" onclick="removeListItem('${k}',${i})">✕</button>`:''}
+    </li>`).join('');
+  });
+  document.getElementById('tedarikciBody').innerHTML = (DB.ayarlar.tedarikci||[]).map(t => `<tr>
+    <td><strong>${esc(t.ad)}</strong></td><td>${esc(t.kisi)}</td><td>${esc(t.tel)}</td><td>${esc(t.email)}</td><td>${esc(t.tip)}</td>
+  </tr>`).join('');
+}
+
+function addListItem(key){
+  const v = prompt(`Yeni "${key}" ekle:`); if(!v||!v.trim()) return;
+  if(!DB.ayarlar[key]) DB.ayarlar[key] = [];
+  DB.ayarlar[key].push(v.trim());
+  addLog('Ayarlar','Ekleme',`${key}: "${v.trim()}" eklendi`);
+  saveToLS(); renderAyarlar();
+  showToast('✅ Eklendi','success');
+}
+
+function removeListItem(key,idx){
+  if(!confirm('Silmek istiyor musunuz?')) return;
+  DB.ayarlar[key].splice(idx,1);
+  addLog('Ayarlar','Silme',`${key}: öğe silindi`);
+  saveToLS(); renderAyarlar();
+}
+
+function addTedarikci(){
+  const ad = prompt('Tedarikçi adı:'); if(!ad) return;
+  DB.ayarlar.tedarikci.push({ad, kisi:prompt('İlgili kişi:')||'', tel:prompt('Telefon:')||'', email:prompt('E-posta:')||'', tip:prompt('Malzeme tipi:')||''});
+  addLog('Ayarlar','Tedarikçi Ekleme',`${ad} eklendi`);
+  saveToLS(); renderAyarlar();
+  showToast('✅ Tedarikçi eklendi','success');
+}
+
+function renderLog(){
+  const q = (document.getElementById('logSearch')?.value||'').toLowerCase();
+  const rows = DB.log.filter(l => !q || (l.detay||'').toLowerCase().includes(q) || (l.islem||'').toLowerCase().includes(q));
+  document.getElementById('logBody').innerHTML = rows.slice(0,200).map((l,i) => `<tr>
+    <td>${i+1}</td><td style="font-size:11px;white-space:nowrap">${esc(l.tarih)}</td>
+    <td>${esc(l.kullanici)}</td><td><span class="badge badge-blue">${esc(l.modul)}</span></td>
+    <td>${esc(l.islem)}</td><td style="font-size:11px">${esc(l.detay)}</td>
+  </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">Kayıt yok</td></tr>';
+}
+
+function clearLog(){
+  if(!confirm('Tüm logları silmek istediğinizden emin misiniz?')) return;
+  DB.log = []; saveToLS(); renderLog();
+}
+
+function renderYedekleme(){
+  var ls = '–';
+  try{ ls = localStorage.getItem('tcdd_lastSave')||'–'; }catch(e){}
+  document.getElementById('lastSaveTime').textContent = ls;
+  var total = DB.envanter.length + DB.hareketler.length + DB.serino.length + DB.arizali.length + DB.kalibrasyon.length + DB.log.length + DB.personelFormu.length;
+  document.getElementById('totalRecords').textContent = total;
+  try{
+    var size = new Blob([JSON.stringify(DB)]).size;
+    document.getElementById('dataSize').textContent = (size/1024).toFixed(1) + ' KB';
+  } catch(e){}
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MODAL KAYDETME (Tüm formlar için)
+// ═══════════════════════════════════════════════════════════════
+
+function saveModal(){
+  if(!currentModal || currentModal==='qrview') return;
+  
+  if(currentModal==='envanter'){
+    const kod = val('f-kod').trim(); const ad = val('f-ad').trim();
+    if(!kod||!ad){ showToast('❌ Malzeme kodu ve adı zorunlu','error'); return; }
+    if(!editingId && DB.envanter.find(e=>e.kod===kod)){ showToast('❌ "' + kod + '" kodu zaten mevcut!','error'); return; }
+    const obj = {id:editingId||Date.now(), kod, ad, kategori:val('f-kat'), altkat:val('f-altkat'),
+      birim:val('f-birim'), konum:val('f-konum'), min:Number(val('f-min'))||0, max:Number(val('f-max'))||0,
+      stok:Number(val('f-stok'))||0, kritiklik:val('f-kritiklik'), tedarikci:val('f-tedarikci'),
+      sonAlim:val('f-alimtarih'), fiyat:Number(val('f-fiyat'))||0, model:val('f-model'),
+      garanti:'', kondisyon:'Sıfır', notlar:val('f-notlar'), barkod:kod,
+      teknikBina:'', sorumluKisi:val('f-sorumlu')};
+    if(editingId){ const i=DB.envanter.findIndex(e=>e.id===editingId); if(i!==-1) DB.envanter[i]=obj; }
+    else DB.envanter.push(obj);
+    addLog('Envanter',editingId?'Güncelleme':'Yeni Kayıt',`${kod} – ${ad}`);
+    saveToLS(); renderEnvanter(); showToast('✅ Malzeme kaydedildi','success');
+  }
+  else if(currentModal==='hareket'){
+    const tur=val('h-tur'); const mal=val('h-mal'); const miktar=parseInt(val('h-miktar'),10);
+    if(!tur||!mal||!miktar||miktar<=0){ showToast('❌ Tür, malzeme ve geçerli miktar zorunlu','error'); return; }
+    const env = DB.envanter.find(e=>e.kod===mal);
+    if(tur==='Çıkış'||tur==='Hurda'||tur==='Tamir Gönderildi'){
+      if(env && env.stok<miktar){ showToast(`❌ Yetersiz stok! Mevcut: ${env.stok}`,'error'); return; }
+      if(env) env.stok -= miktar;
+    } else if(tur==='Giriş'||tur==='İade'){
+      if(env) env.stok += miktar;
+    } else if(tur==='Sayım Farkı'){
+      if(env) env.stok += miktar;
+    }
+    const obj = {id:Date.now(), tarih:val('h-tarih'), belge:val('h-belge'), malKod:mal, malAd:env?.ad||mal,
+      tur, miktar, birim:val('h-birim'), personel:val('h-pers'), onaylayan:'',
+      istasyon:val('h-tb')||'', notlar:val('h-not'), teknikBina:val('h-tb'),
+      depo:val('h-depo'), raf:val('h-raf'),
+      konum:[val('h-depo'),val('h-raf')].filter(Boolean).join(' – '),
+      alanKisi:val('h-alan')};
+    DB.hareketler.push(obj);
+    addLog('Hareketler',tur,`${mal}: ${miktar} ${val('h-birim')} – ${val('h-pers')}`);
+    saveToLS(); renderHareketler();
+    if(document.getElementById('s-total')) renderDashboard();
+    showToast(`✅ ${tur} kaydedildi`,'success');
+  }
+  else if(currentModal==='serino'){
+    const no=val('sn-no').trim(); if(!no){ showToast('❌ Seri no zorunlu','error'); return; }
+    // Benzersizlik kontrolü
+    if(!editingId && DB.serino.find(s=>s.seriNo===no)){ showToast('❌ "' + no + '" seri no zaten kayıtlı!','error'); return; }
+    const mal = DB.envanter.find(e=>e.kod===val('sn-mal'));
+    const obj = {id:editingId||Date.now(), malKod:val('sn-mal'), malAd:mal?.ad||'', seriNo:no,
+      durum:val('sn-durum'), konum:val('sn-konum'), giris:val('sn-giris'), sorumlu:val('sn-sor'),
+      isEmri:'', bakimSayisi:editingId?DB.serino.find(s=>s.id===editingId)?.bakimSayisi||0:0,
+      versiyon:val('sn-ver'), notlar:val('sn-not'), teknikBina:val('sn-tb'), alanKisi:val('sn-alan'), barkod:no};
+    if(editingId){ const i=DB.serino.findIndex(s=>s.id===editingId); if(i!==-1) DB.serino[i]=obj; }
+    else DB.serino.push(obj);
+    addLog('Seri No',editingId?'Güncelleme':'Yeni Kayıt',`${no}`);
+    saveToLS(); renderSeriNo(); showToast('✅ Seri no kaydedildi','success');
+  }
+  else if(currentModal==='ariza'){
+    const acik=val('az-acik'); const kod=val('az-kod');
+    if(!acik){ showToast('❌ Arıza açıklaması zorunlu','error'); return; }
+    const seriNo = val('az-seri').trim();
+    if(!seriNo){ showToast('❌ Seri no zorunlu','error'); return; }
+    const karar=val('az-karar');
+    const mal = DB.envanter.find(e=>e.kod===kod);
+    const snRec2 = DB.serino.find(s=>s.seriNo.toLowerCase()===seriNo.toLowerCase());
+    const malAdFinal = val('az-malad') || snRec2?.malAd || mal?.ad || '';
+    const obj = {id:editingId||Date.now(), malKod:kod||snRec2?.malKod||'', malAd:malAdFinal, seriNo,
+      arizaTarih:val('az-artar'), gonderimTarih:val('az-gontar'), tahminiDonus:val('az-donus'),
+      aciklama:acik, istasyon:'', arizaNo:val('az-no'), tamirMerkezi:val('az-tamir'),
+      karar, kararTarih:val('az-kartar'), notlar:val('az-not'), fotograflar:'', videolar:''};
+    if(editingId){ const i=DB.arizali.findIndex(a=>a.id===editingId); if(i!==-1) DB.arizali[i]=obj; }
+    else DB.arizali.push(obj);
+    // Seri no durumunu güncelle
+    const snRec = DB.serino.find(s=>s.seriNo.toLowerCase()===seriNo.toLowerCase());
+    if(snRec){
+      if(karar==='Tamirde'||karar==='Parça Bekliyor') snRec.durum='Tamirde';
+      else if(karar==='Hurda (HEK)') snRec.durum='Hurda';
+      else if(karar==='Tamir Edildi'||karar==='Kullanıma Alındı') snRec.durum='Depoda';
+      else snRec.durum='Arızalı';
+    }
+    addLog('Arızalı',editingId?'Güncelleme':'Yeni Kayıt',`${seriNo}: ${karar}`);
+    saveToLS(); renderArizali(); showToast('✅ Arıza kaydedildi','success');
+  }
+  else if(currentModal==='kalibrasyon'){
+    const tur=val('kal-tur'); if(!tur){ showToast('❌ Bakım türü zorunlu','error'); return; }
+    const mal = DB.envanter.find(e=>e.kod===val('kal-mal'));
+    const obj = {id:editingId||Date.now(), malKod:val('kal-mal'), malAd:mal?.ad||'', seriNo:val('kal-seri'),
+      bakimTur:tur, periyot:Number(val('kal-per'))||12, sonBakim:val('kal-son'), sorumlu:val('kal-sor'), notlar:val('kal-not')};
+    if(editingId){ const i=DB.kalibrasyon.findIndex(k=>k.id===editingId); if(i!==-1) DB.kalibrasyon[i]=obj; }
+    else DB.kalibrasyon.push(obj);
+    addLog('Kalibrasyon',editingId?'Güncelleme':'Yeni Kayıt',`${mal?.ad||''} – ${tur}`);
+    saveToLS(); renderKalibrasyon(); showToast('✅ Bakım kaydedildi','success');
+  }
+  else if(currentModal==='kullanici'){
+    const un=val('u-user'); const nm=val('u-name');
+    if(!un||!nm){ showToast('❌ Kullanıcı adı ve isim zorunlu','error'); return; }
+    const pass=val('u-pass');
+    if(!editingId && !pass){ showToast('❌ Yeni kullanıcı için şifre zorunlu','error'); return; }
+    const existingUser = editingId ? DB.kullanicilar.find(u=>u.id===editingId) : null;
+    const obj = {id:editingId||Date.now(), user:un, name:nm,
+      pass:editingId?(pass||existingUser?.pass||''):pass,
+      role:val('u-rol'), access:val('u-access'), active:val('u-active')==='1',
+      lastLogin:existingUser?.lastLogin||''};
+    if(editingId){ const i=DB.kullanicilar.findIndex(u=>u.id===editingId); if(i!==-1) DB.kullanicilar[i]=obj; }
+    else DB.kullanicilar.push(obj);
+    addLog('Kullanıcılar',editingId?'Güncelleme':'Yeni Kayıt',`${nm} (${val('u-rol')})`);
+    saveToLS(); renderKullanicilar(); showToast('✅ Kullanıcı kaydedildi','success');
+  }
+  else if(currentModal==='personel'){
+    const ad=val('p-ad'); const soyad=val('p-soyad');
+    if(!ad||!soyad){ showToast('❌ Ad ve soyad zorunlu','error'); return; }
+    const obj = {id:editingId||Date.now(), ad, soyad, sicilNo:val('p-sicil'), unvan:val('p-unvan'),
+      birim:val('p-birim'), telefon:val('p-tel'), eposta:val('p-email'), gorev:val('p-gorev'), notlar:val('p-not')};
+    if(editingId){ const i=DB.personelFormu.findIndex(p=>p.id===editingId); if(i!==-1) DB.personelFormu[i]=obj; }
+    else DB.personelFormu.push(obj);
+    addLog('Personel',editingId?'Güncelleme':'Yeni Kayıt',`${ad} ${soyad}`);
+    saveToLS(); renderPersonelFormu(); showToast('✅ Personel kaydedildi','success');
+  }
+  closeModal();
+}
+
+// Kayıt silme
+function deleteRecord(table, id){
+  // Tablo bazlı izin kontrolü
+  var canDelete = false;
+  if(table === 'arizali' || table === 'kalibrasyon') canDelete = can('fault') || can('edit');
+  else if(table === 'kullanicilar') canDelete = can('users');
+  else canDelete = can('edit');
+  if(!canDelete){ showToast('⛔ Yetkiniz yok','error'); return; }
+  // Kullanıcı kendi hesabını silemesin
+  if(table === 'kullanicilar' && currentUser && currentUser.id === id){
+    showToast('⛔ Kendi hesabınızı silemezsiniz','error'); return;
+  }
+  if(!confirm('Bu kaydı silmek istediğinizden emin misiniz?')) return;
+  DB[table] = DB[table].filter(x => String(x.id) !== String(id));
+  addLog(table,'Silme',`ID: ${id} silindi`);
+  saveToLS();
+  const renders = {envanter:renderEnvanter, arizali:renderArizali, kullanicilar:renderKullanicilar,
+    kalibrasyon:renderKalibrasyon, serino:renderSeriNo, hareketler:renderHareketler, personelFormu:renderPersonelFormu};
+  if(renders[table]) renders[table]();
+  showToast('🗑️ Kayıt silindi');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GRAFİKLER (Sidebar'dan açılır)
+// ═══════════════════════════════════════════════════════════════
+
+var charts = {};
+
+function renderGrafikler(){
+  const isDark = document.body.classList.contains('dark-mode');
+  const txtColor = isDark ? '#e2e8f0' : '#1e2a3b';
+  const gridColor = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.05)';
+  const colors = ['#C8102E','#1a3a6b','#15803d','#d97706','#7c3aed','#0891b2','#dc2626','#8b5cf6'];
+  
+  // 1. Kategori Dağılımı
+  const katSay = {};
+  DB.envanter.forEach(e => { katSay[e.kategori] = (katSay[e.kategori]||0)+1; });
+  createChart('chartKategori','doughnut',Object.keys(katSay),Object.values(katSay),colors,txtColor);
+  
+  // 2. Hareket Türleri
+  const turSay = {};
+  DB.hareketler.forEach(h => { turSay[h.tur] = (turSay[h.tur]||0)+1; });
+  createChart('chartHareket','bar',Object.keys(turSay),Object.values(turSay),['#15803d','#dc2626','#1d4ed8','#64748b','#d97706','#7c3aed'],txtColor,gridColor);
+  
+  // 3. Stok Durumu
+  const yeterli = DB.envanter.filter(e=>e.stok>e.min).length;
+  const kritik = DB.envanter.filter(e=>e.stok>0&&e.stok<=e.min).length;
+  const tukendi = DB.envanter.filter(e=>e.stok<=0).length;
+  createChart('chartStokTrend','pie',['Yeterli','Kritik','Tükendi'],[yeterli,kritik,tukendi],['#15803d','#d97706','#dc2626'],txtColor);
+  
+  // 4. Kritiklik Dağılımı
+  const kritA = DB.envanter.filter(e=>e.kritiklik==='A').length;
+  const kritB = DB.envanter.filter(e=>e.kritiklik==='B').length;
+  const kritC = DB.envanter.filter(e=>e.kritiklik==='C').length;
+  createChart('chartKritiklik','doughnut',['A: Trafik Durur','B: Kısıtlı','C: Etkisiz'],[kritA,kritB,kritC],['#dc2626','#d97706','#15803d'],txtColor);
+  
+  // 5. Bakım Durumu
+  const bakOk=DB.kalibrasyon.filter(k=>{if(!k.sonBakim)return false;const n=new Date(k.sonBakim);if(isNaN(n.getTime()))return false;n.setMonth(n.getMonth()+(k.periyot||12));return daysDiff(today(),n.toISOString().split('T')[0])>=30;}).length;
+  const bakYak=DB.kalibrasyon.filter(k=>{if(!k.sonBakim)return false;const n=new Date(k.sonBakim);if(isNaN(n.getTime()))return false;n.setMonth(n.getMonth()+(k.periyot||12));const g=daysDiff(today(),n.toISOString().split('T')[0]);return g>=0&&g<30;}).length;
+  const bakGec=DB.kalibrasyon.filter(k=>{if(!k.sonBakim)return false;const n=new Date(k.sonBakim);if(isNaN(n.getTime()))return false;n.setMonth(n.getMonth()+(k.periyot||12));return n<new Date();}).length;
+  createChart('chartBakim','bar',['Yapıldı','Yaklaşıyor','Gecikmiş'],[bakOk,bakYak,bakGec],['#15803d','#d97706','#dc2626'],txtColor,gridColor);
+  
+  // 6. Depo Bazlı
+  const depoSay = {};
+  DB.envanter.forEach(e => {
+    const depo = (e.konum||'').split('–')[0].trim() || 'Belirsiz';
+    depoSay[depo] = (depoSay[depo]||0)+1;
+  });
+  createChart('chartDepo','bar',Object.keys(depoSay),Object.values(depoSay),colors,txtColor,gridColor);
+}
+
+function createChart(canvasId, type, labels, data, bgColors, txtColor, gridColor){
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  if(charts[canvasId]) charts[canvasId].destroy();
+  
+  const config = {
+    type: type,
+    data: { labels, datasets: [{data, backgroundColor:bgColors, borderWidth:type==='bar'?0:2, borderRadius:type==='bar'?6:0}] },
+    options: {
+      responsive:true,
+      plugins:{legend:{display:type!=='bar',position:'right',labels:{font:{size:11},color:txtColor}},
+        tooltip:{callbacks:{label:function(ctx){return `${ctx.label}: ${ctx.raw} adet`;}}}},
+      ...(type==='bar'?{scales:{y:{beginAtZero:true,ticks:{color:txtColor},grid:{color:gridColor||'rgba(0,0,0,.05)'}},x:{ticks:{color:txtColor},grid:{display:false}}}}:{})
+    }
+  };
+  charts[canvasId] = new Chart(canvas, config);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  BARKOD / QR KOD SİSTEMİ
+// ═══════════════════════════════════════════════════════════════
+
+function renderBarkod(){
+  const sel = document.getElementById('qrMalzeme');
+  if(sel){
+    sel.innerHTML = '<option value="">Seçin...</option>';
+    DB.envanter.forEach(e => { const o=document.createElement('option'); o.value=e.kod; o.textContent=`${e.kod} – ${e.ad}`; sel.appendChild(o); });
+    DB.serino.forEach(s => { const o=document.createElement('option'); o.value=s.seriNo; o.textContent=`SN: ${s.seriNo} – ${s.malAd}`; sel.appendChild(o); });
+  }
+  const hBody = document.getElementById('scanHistoryBody');
+  if(hBody){
+    hBody.innerHTML = scanHistory.slice(0,20).map((h,i) => `<tr>
+      <td>${i+1}</td><td style="font-size:11px">${esc(h.tarih)}</td>
+      <td><code style="font-size:11px">${esc(h.kod)}</code></td>
+      <td>${esc(h.sonuc)}</td>
+      <td style="font-size:11px">${esc(h.konum||'–')}</td>
+      <td><span class="badge ${h.bulundu?'badge-green':'badge-red'}">${h.bulundu?'Bulundu':'Bulunamadı'}</span></td>
+    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:14px">Henüz tarama yapılmadı</td></tr>';
+  }
+}
+
+function startScan(context){
+  scanContext = context;
+  if(context==='genel'){
+    document.getElementById('startScanBtn').style.display='none';
+    document.getElementById('stopScanBtn').style.display='inline-flex';
+    document.getElementById('scanResult').innerHTML='<div style="color:var(--muted);font-size:13px;padding:10px">📷 Kamera başlatılıyor...</div>';
+    if(html5QrCode){ try{html5QrCode.stop().then(function(){}).catch(function(){});}catch(e){} html5QrCode=null; }
+    try{
+      html5QrCode = new Html5Qrcode('scanReader');
+      html5QrCode.start(
+        {facingMode:'environment'},
+        {fps:10, qrbox:{width:260,height:260}},
+        onScanSuccess,
+        function(){}
+      ).then(function(){
+        document.getElementById('scanResult').innerHTML='<div style="color:var(--muted);font-size:13px;padding:10px">🔍 Barkod veya QR kodu kameraya tutun...</div>';
+      }).catch(function(err){
+        document.getElementById('scanResult').innerHTML='';
+        showToast('❌ Kamera erişimi sağlanamadı: '+err,'error');
+        stopScan();
+      });
+    }catch(e){ showToast('❌ Tarayıcı başlatılamadı: '+e,'error'); stopScan(); }
+  } else {
+    // Modal scanner - önce eskisini temizle
+    if(scanModalScanner){
+      try{ scanModalScanner.stop().catch(function(){}); }catch(e){}
+      scanModalScanner = null;
+    }
+    var readerEl = document.getElementById('scanModalReader');
+    if(readerEl) readerEl.innerHTML = '';
+    var resultEl = document.getElementById('scanModalResult');
+    if(resultEl) resultEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:10px;text-align:center">📷 Kamera başlatılıyor...</div>';
+    document.getElementById('scanModalOverlay').classList.add('open');
+    setTimeout(function(){
+      try{
+        scanModalScanner = new Html5Qrcode('scanModalReader');
+        scanModalScanner.start(
+          {facingMode:'environment'},
+          {fps:10, qrbox:{width:240,height:240}},
+          onModalScanSuccess,
+          function(){}
+        ).then(function(){
+          var r=document.getElementById('scanModalResult');
+          if(r) r.innerHTML='<div style="color:var(--muted);font-size:13px;padding:6px;text-align:center">🔍 Barkod veya QR kodu kameraya tutun...</div>';
+        }).catch(function(err){
+          var r=document.getElementById('scanModalResult');
+          if(r) r.innerHTML='<div class="alert alert-red"><span>❌</span><span>Kamera erişimi sağlanamadı. Tarayıcınızda kamera iznini kontrol edin.<br><small>'+err+'</small></span></div>';
+        });
+      }catch(e){
+        var r=document.getElementById('scanModalResult');
+        if(r) r.innerHTML='<div class="alert alert-red"><span>❌</span><span>Tarayıcı başlatılamadı: '+e+'</span></div>';
+      }
+    },300);
+  }
+}
+
+function stopScan(){
+  document.getElementById('startScanBtn').style.display='inline-flex';
+  document.getElementById('stopScanBtn').style.display='none';
+  if(html5QrCode){ try{html5QrCode.stop().catch(function(){});}catch(e){} html5QrCode=null; }
+}
+
+function closeScanModal(){
+  if(scanModalScanner){ try{scanModalScanner.stop().catch(function(){});}catch(e){} scanModalScanner=null; }
+  document.getElementById('scanModalOverlay').classList.remove('open');
+  var readerEl = document.getElementById('scanModalReader');
+  if(readerEl) readerEl.innerHTML='';
+  var ttBtn = document.getElementById('tekrarTaraBtn');
+  if(ttBtn) ttBtn.style.display='none';
+}
+
+function tekrarTara(){
+  // Sonucu temizle ve kamerayı yeniden başlat
+  var resultEl = document.getElementById('scanModalResult');
+  if(resultEl) resultEl.innerHTML='';
+  var ttBtn = document.getElementById('tekrarTaraBtn');
+  if(ttBtn) ttBtn.style.display='none';
+  var readerEl = document.getElementById('scanModalReader');
+  if(readerEl) readerEl.innerHTML='';
+  // Scanner'ı yeniden başlat
+  setTimeout(function(){
+    try{
+      scanModalScanner = new Html5Qrcode('scanModalReader');
+      scanModalScanner.start(
+        {facingMode:'environment'},
+        {fps:10, qrbox:{width:240,height:240}},
+        onModalScanSuccess,
+        function(){}
+      ).then(function(){
+        var r=document.getElementById('scanModalResult');
+        if(r) r.innerHTML='<div style="color:var(--muted);font-size:13px;padding:6px;text-align:center">🔍 Barkod veya QR kodu kameraya tutun...</div>';
+      }).catch(function(err){
+        var r=document.getElementById('scanModalResult');
+        if(r) r.innerHTML='<div class="alert alert-red"><span>❌</span><span>Kamera erişimi sağlanamadı.<br><small>'+err+'</small></span></div>';
+      });
+    }catch(e){}
+  },200);
+}
+
+function openQuickScan(){ scanContext='quick'; startScan('quick'); }
+
+function onScanSuccess(code){ stopScan(); processScanResult(code,'scanResult'); }
+
+function onModalScanSuccess(code){
+  // Scanner'ı durdur ama modali AÇIK tut - sonucu göster
+  if(scanModalScanner){ try{scanModalScanner.stop().catch(function(){});}catch(e){} scanModalScanner=null; }
+  var readerEl = document.getElementById('scanModalReader');
+  if(readerEl) readerEl.innerHTML='';
+  
+  // Scan geçmişine ekle
+  var entry = {tarih:new Date().toLocaleString('tr-TR'), kod:code, sonuc:'', bulundu:false, konum:''};
+  var env=DB.envanter.find(function(e){return e.kod===code||e.barkod===code;});
+  var sn=DB.serino.find(function(s){return s.seriNo===code||s.barkod===code;});
+  if(env){ entry.sonuc=env.ad+' (Stok: '+env.stok+')'; entry.bulundu=true; entry.konum=env.konum||''; }
+  else if(sn){ entry.sonuc=sn.malAd+' (SN: '+sn.seriNo+')'; entry.bulundu=true; entry.konum=sn.konum||''; }
+  scanHistory.unshift(entry);
+  if(scanHistory.length>50) scanHistory=scanHistory.slice(0,50);
+  addLog('Barkod/QR','Tarama','Kod: '+code+' – '+(entry.bulundu?'Bulundu':'Bulunamadı'));
+  
+  // Tekrar Tara butonunu göster
+  var ttBtn = document.getElementById('tekrarTaraBtn');
+  if(ttBtn) ttBtn.style.display = 'inline-flex';
+  
+  // Tarama sonucunu modal içinde göster
+  processScanResult(code,'scanModalResult');
+  
+  // Context-based follow-up modal butonları göster
+  var actionsHtml = '';
+  if(scanContext==='hareket'){
+    if(env) actionsHtml = '<button class="btn btn-primary" style="margin-top:10px;width:100%" onclick="closeScanModal();navigate(\'hareketler\');setTimeout(function(){openHarModal(\''+esc(code)+'\');},100)">➕ Bu Malzeme ile Hareket Oluştur</button>';
+  } else if(scanContext==='envanter'){
+    actionsHtml = '<button class="btn btn-primary" style="margin-top:10px;width:100%" onclick="closeScanModal();navigate(\'envanter\');document.getElementById(\'envSearch\').value=\''+esc(code)+'\';renderEnvanter()">📦 Envanterde Göster</button>';
+  } else if(scanContext==='serino'){
+    actionsHtml = '<button class="btn btn-primary" style="margin-top:10px;width:100%" onclick="closeScanModal();navigate(\'serino\');document.getElementById(\'snSearch\').value=\''+esc(code)+'\';renderSeriNo()">🔢 Seri No\'da Göster</button>';
+  } else if(scanContext==='ariza'){
+    if(sn) actionsHtml = '<button class="btn btn-primary" style="margin-top:10px;width:100%" onclick="closeScanModal();navigate(\'arizali\');setTimeout(function(){openArizaModal();setTimeout(function(){setVal(\'az-seri\',\''+esc(sn.seriNo)+'\');arizaAutoFill(\''+esc(sn.seriNo)+'\');},100);},200)">🔧 Arıza Kaydı Oluştur</button>';
+  } else if(scanContext==='bakim'){
+    if(sn) actionsHtml = '<button class="btn btn-primary" style="margin-top:10px;width:100%" onclick="closeScanModal();navigate(\'kalibrasyon\');setTimeout(function(){openKalModal();setTimeout(function(){setVal(\'kal-mal\',\''+esc(sn.malKod)+'\');setVal(\'kal-seri\',\''+esc(sn.seriNo)+'\');},100);},200)">📅 Bakım Kaydı Oluştur</button>';
+  } else if(scanContext==='quick'){
+    actionsHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">'
+      + (env?'<button class="btn btn-primary btn-sm" onclick="closeScanModal();navigate(\'envanter\');document.getElementById(\'envSearch\').value=\''+esc(code)+'\';renderEnvanter()">📦 Envanterde Göster</button>':'')
+      + (sn?'<button class="btn btn-secondary btn-sm" onclick="closeScanModal();navigate(\'serino\');document.getElementById(\'snSearch\').value=\''+esc((sn||{}).seriNo||'')+'\';renderSeriNo()">🔢 Seri No\'da Göster</button>':'')
+      + '</div>';
+  }
+  if(actionsHtml){
+    var resultEl = document.getElementById('scanModalResult');
+    if(resultEl) resultEl.insertAdjacentHTML('beforeend', actionsHtml);
+  }
+}
+
+function processScanResult(code, targetEl){
+  const env=DB.envanter.find(e=>e.kod===code||e.barkod===code);
+  const sn=DB.serino.find(s=>s.seriNo===code||s.barkod===code);
+  const entry = {tarih:new Date().toLocaleString('tr-TR'), kod:code, sonuc:'', bulundu:false, konum:''};
+  
+  if(env){
+    entry.sonuc=`${env.ad} (Stok: ${env.stok})`;
+    entry.bulundu=true;
+    entry.konum=`${env.teknikBina||'DEPO'} – ${env.konum}`;
+    if(targetEl){
+      const d=getStokDurum(env.stok,env.min);
+      // İlgili arıza ve bakım kayıtlarını bul
+      const arizalar = DB.arizali.filter(a=>a.malKod===env.kod);
+      const bakimlar = DB.kalibrasyon.filter(k=>k.malKod===env.kod);
+      const sonHareketler = DB.hareketler.filter(h=>h.malKod===env.kod).slice(-3).reverse();
+      
+      let html = `<div class="scan-result-card">
+        <div style="font-weight:700;font-size:15px;margin-bottom:10px;color:#15803d">✅ Malzeme Bulundu</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
+          <div><strong>Kod:</strong> ${esc(env.kod)}</div>
+          <div><strong>Ad:</strong> ${esc(env.ad)}</div>
+          <div><strong>Kategori:</strong> ${esc(env.kategori)}</div>
+          <div><strong>Model:</strong> ${esc(env.model||'–')}</div>
+          <div style="grid-column:span 2;padding:8px;background:rgba(26,58,107,.08);border-radius:6px;margin:4px 0">
+            <strong>📍 Konum:</strong> ${esc(env.konum)}<br>
+            <strong>🏗️ Teknik Bina:</strong> <span style="color:var(--tcdd-blue);font-weight:700;font-size:14px">${esc(env.teknikBina||'DEPO')}</span><br>
+            <strong>👤 Sorumlu:</strong> ${esc(env.sorumluKisi||'–')}
+          </div>
+          <div><strong>Stok:</strong> <span style="font-size:16px;font-weight:800;color:${env.stok<=0?'var(--red)':env.stok<=env.min?'#d97706':'var(--green)'}">${env.stok}</span> ${esc(env.birim)}</div>
+          <div><strong>Durum:</strong> <span class="badge ${d.cls}">${d.label}</span></div>
+          <div><strong>Kritiklik:</strong> ${getKritiklik(env.kritiklik)}</div>
+          <div><strong>Tedarikçi:</strong> ${esc(env.tedarikci||'–')}</div>
+          <div><strong>Son Alım:</strong> ${fmtDate(env.sonAlim)}</div>
+          <div><strong>Fiyat:</strong> ${env.fiyat?env.fiyat.toLocaleString('tr-TR')+' ₺':'–'}</div>
+        </div>`;
+      
+      // Arıza bilgisi varsa göster
+      const aktifAriza = arizalar.filter(a=>a.karar==='Tamirde'||a.karar==='Parça Bekliyor');
+      if(aktifAriza.length > 0){
+        html += `<div style="margin-top:8px;padding:8px;background:var(--red-bg);border-radius:6px;font-size:12px">
+          <strong>🔧 Aktif Arıza:</strong> ${aktifAriza.map(a=>`${esc(a.seriNo)} – ${esc(a.karar)} (${esc(a.tamirMerkezi||'?')})`).join(', ')}
+        </div>`;
+      }
+      
+      // Bakım bilgisi varsa göster
+      if(bakimlar.length > 0){
+        const yaklasan = bakimlar.filter(k=>{const n=new Date(k.sonBakim);n.setMonth(n.getMonth()+(k.periyot||12));return daysDiff(today(),n.toISOString().split('T')[0])<30;});
+        if(yaklasan.length > 0){
+          html += `<div style="margin-top:6px;padding:8px;background:var(--yellow-bg);border-radius:6px;font-size:12px">
+            <strong>📅 Yaklaşan Bakım:</strong> ${yaklasan.map(k=>`${esc(k.bakimTur)} (${esc(k.seriNo)})`).join(', ')}
+          </div>`;
+        }
+      }
+      
+      // Son hareketler
+      if(sonHareketler.length > 0){
+        html += `<div style="margin-top:8px;font-size:11px;color:var(--muted)"><strong>Son Hareketler:</strong> ${sonHareketler.map(h=>`${fmtDate(h.tarih)} ${h.tur} ${h.miktar}${h.birim}`).join(' | ')}</div>`;
+      }
+      
+      // Hızlı işlem butonları
+      html += `<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="navigate('envanter');document.getElementById('envSearch').value='${esc(env.kod)}';renderEnvanter()">📦 Envantere Git</button>
+        <button class="btn btn-success btn-sm" onclick="closeScanModal();navigate('hareketler');setTimeout(function(){openHarModal('${esc(env.kod)}');},200)">➕ Stok Hareketi</button>
+        <button class="btn btn-secondary btn-sm" onclick="showItemQR('${esc(env.kod)}')">🏷️ QR/Barkod</button>
+      </div></div>`;
+      
+      document.getElementById(targetEl).innerHTML = html;
+    }
+  } else if(sn){
+    entry.sonuc=`${sn.malAd} (SN: ${sn.seriNo})`;
+    entry.bulundu=true;
+    entry.konum=`${sn.teknikBina||'DEPO'} – ${sn.konum}`;
+    if(targetEl){
+      // İlgili arıza ve bakım kayıtları
+      const arizalar = DB.arizali.filter(a=>a.seriNo===sn.seriNo);
+      const bakimlar = DB.kalibrasyon.filter(k=>k.seriNo===sn.seriNo);
+      const durumCls = {Depoda:'badge-green',Sahada:'badge-blue',Arızalı:'badge-red',Hurda:'badge-gray',Tamirde:'badge-yellow'};
+      
+      let html = `<div class="scan-result-card">
+        <div style="font-weight:700;font-size:15px;margin-bottom:10px;color:#15803d">✅ Seri Numaralı Ekipman Bulundu</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
+          <div><strong>Seri No:</strong> <code style="font-size:13px;background:#f1f5f9;padding:2px 8px;border-radius:4px">${esc(sn.seriNo)}</code></div>
+          <div><strong>Malzeme:</strong> ${esc(sn.malAd)}</div>
+          <div><strong>Durum:</strong> <span class="badge ${durumCls[sn.durum]||'badge-gray'}">${esc(sn.durum)}</span></div>
+          <div><strong>Versiyon:</strong> ${esc(sn.versiyon||'–')}</div>
+          <div style="grid-column:span 2;padding:8px;background:rgba(26,58,107,.08);border-radius:6px;margin:4px 0">
+            <strong>📍 Konum:</strong> ${esc(sn.konum)}<br>
+            <strong>🏗️ Teknik Bina:</strong> <span style="color:var(--tcdd-blue);font-weight:700;font-size:14px">${esc(sn.teknikBina||'DEPO')}</span><br>
+            <strong>👤 Alan Kişi:</strong> ${esc(sn.alanKisi||'–')}<br>
+            <strong>👷 Sorumlu:</strong> ${esc(sn.sorumlu||'–')}
+          </div>
+          <div><strong>Giriş Tarihi:</strong> ${fmtDate(sn.giris)}</div>
+          <div><strong>Bakım Sayısı:</strong> ${sn.bakimSayisi||0}</div>
+        </div>`;
+      
+      // Aktif arıza
+      const aktifAriza = arizalar.filter(a=>a.karar==='Tamirde'||a.karar==='Parça Bekliyor');
+      if(aktifAriza.length > 0){
+        html += `<div style="margin-top:8px;padding:8px;background:var(--red-bg);border-radius:6px;font-size:12px">
+          <strong>🔧 Aktif Arıza:</strong> ${aktifAriza.map(a=>`${esc(a.karar)} – ${esc(a.tamirMerkezi||'?')} (${daysDiff(a.gonderimTarih||a.arizaTarih,today())} gün)`).join(', ')}
+        </div>`;
+      }
+      
+      // Arıza geçmişi
+      if(arizalar.length > 0){
+        html += `<div style="margin-top:6px;font-size:11px;color:var(--muted)"><strong>Arıza Geçmişi:</strong> ${arizalar.length} kayıt (${arizalar.filter(a=>a.karar==='Tamir Edildi').length} tamir edildi)</div>`;
+      }
+      
+      html += `<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="navigate('serino');document.getElementById('snSearch').value='${esc(sn.seriNo)}';renderSeriNo()">🔢 Seri No'ya Git</button>
+        <button class="btn btn-secondary btn-sm" onclick="showItemQR('${esc(sn.seriNo)}')">🏷️ QR/Barkod</button>
+      </div></div>`;
+      
+      document.getElementById(targetEl).innerHTML = html;
+    }
+  } else {
+    entry.sonuc='Bulunamadı';
+    if(targetEl){
+      document.getElementById(targetEl).innerHTML=`<div class="alert alert-red" style="flex-direction:column;gap:6px">
+        <div><strong>❌ "${esc(code)}" kodu sistemde bulunamadı</strong></div>
+        <div style="font-size:12px">Bu kod ile kayıtlı malzeme veya seri no bulunmamaktadır. Kodu kontrol edip tekrar deneyin veya yeni kayıt oluşturun.</div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="btn btn-primary btn-sm" onclick="navigate('envanter');openEnvanterModal()">➕ Yeni Malzeme Ekle</button>
+          <button class="btn btn-secondary btn-sm" onclick="navigate('serino');openSeriNoModal()">🔢 Yeni Seri No</button>
+        </div>
+      </div>`;
+    }
+  }
+  scanHistory.unshift(entry);
+  if(scanHistory.length>50) scanHistory=scanHistory.slice(0,50);
+  addLog('Barkod/QR','Tarama',`Kod: ${code} – ${entry.bulundu?'Bulundu':'Bulunamadı'}`);
+}
+
+function generateCodes(){ const c=document.getElementById('qrMalzeme').value; if(!c){document.getElementById('generatedCodes').style.display='none';return;} generateCodeDisplay(c); }
+function generateManualCodes(){ const c=document.getElementById('qrManuel').value.trim(); if(!c){document.getElementById('generatedCodes').style.display='none';return;} generateCodeDisplay(c); }
+
+function generateCodeDisplay(code){
+  document.getElementById('generatedCodes').style.display='block';
+  const qrEl=document.getElementById('qrCodeDisplay'); qrEl.innerHTML='';
+  try{ new QRCode(qrEl,{text:code,width:150,height:150,colorDark:'#0f1923',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M}); }catch(e){}
+  try{ JsBarcode('#barcodeDisplay',code.replace(/[^a-zA-Z0-9\-\.]/g,''),{format:'CODE128',width:2,height:55,displayValue:true,fontSize:11,margin:8,font:'Barlow'}); }catch(e){}
+}
+
+function showItemQR(code){
+  openModal('🏷️ QR / Barkod: '+code,`
+    <div style="text-align:center">
+      <div id="modalQR" style="display:inline-block;margin-bottom:14px"></div>
+      <div class="barcode-container"><svg id="modalBarcode"></svg></div>
+      <div style="margin-top:14px;display:flex;gap:8px;justify-content:center">
+        <button class="btn btn-secondary btn-sm" onclick="printModalCodes()">🖨️ Yazdır</button>
+      </div>
+    </div>`);
+  document.getElementById('modalSaveBtn').style.display='none';
+  currentModal='qrview';
+  setTimeout(()=>{
+    try{ new QRCode(document.getElementById('modalQR'),{text:code,width:170,height:170,colorDark:'#0f1923',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M}); }catch(e){}
+    try{ JsBarcode('#modalBarcode',code.replace(/[^a-zA-Z0-9\-\.]/g,''),{format:'CODE128',width:2,height:65,displayValue:true,fontSize:13,margin:8,font:'Barlow'}); }catch(e){}
+  },50);
+}
+
+function printCodes(){ printCodeElements(document.getElementById('qrCodeDisplay'),document.getElementById('barcodeDisplay')); }
+function printModalCodes(){ printCodeElements(document.getElementById('modalQR'),document.getElementById('modalBarcode')); }
+function printCodeElements(qrEl,bcEl){
+  const w=window.open('','_blank','width=400,height=500');
+  w.document.write('<html><head><title>Barkod/QR</title><style>body{font-family:Arial;text-align:center;padding:20px}img,svg{max-width:100%}</style></head><body>');
+  w.document.write('<h3>TCDD Tavşanlı – Depo Etiketi</h3>');
+  if(qrEl){const img=qrEl.querySelector('img')||qrEl.querySelector('canvas'); if(img){if(img.tagName==='CANVAS')w.document.write('<img src="'+img.toDataURL()+'" style="width:170px"/><br>');else w.document.write('<img src="'+img.src+'" style="width:170px"/><br>');}}
+  if(bcEl) w.document.write(bcEl.outerHTML);
+  w.document.write('</body></html>'); w.document.close(); w.print();
+}
+function downloadQR(){
+  const qrEl=document.getElementById('qrCodeDisplay');
+  const img=qrEl?.querySelector('img')||qrEl?.querySelector('canvas');
+  if(!img){showToast('❌ Önce QR oluşturun','error');return;}
+  const a=document.createElement('a');
+  if(img.tagName==='CANVAS') a.href=img.toDataURL(); else a.href=img.src;
+  a.download='TCDD_QR_'+Date.now()+'.png'; a.click();
+  showToast('📥 QR kod indirildi','success');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DIŞA AKTARMA (Excel, JSON)
+// ═══════════════════════════════════════════════════════════════
+
+function exportTable(tbl){
+  const wb = XLSX.utils.book_new();
+  
+  const tableConfigs = {
+    envanter: { headers:['Kod','Ad','Kategori','Alt Kategori','Konum','Birim','Min','Max','Stok','Durum','Kritiklik','Tedarikçi','Son Alım','Fiyat (₺)','Model','Teknik Bina','Sorumlu'], getData:()=>DB.envanter.map(e=>[e.kod,e.ad,e.kategori,e.altkat,e.konum,e.birim,e.min,e.max,e.stok,getStokDurum(e.stok,e.min).label.replace(/[✅⚠️⛔ ]/g,''),e.kritiklik,e.tedarikci,e.sonAlim,e.fiyat,e.model,e.teknikBina,e.sorumluKisi]) },
+    hareketler: { headers:['Tarih','Belge','Malzeme Kodu','Malzeme Adı','Tür','Miktar','Birim','Personel','Depo','Raf','Konum','Teknik Bina','Alan Kişi','Notlar'], getData:()=>DB.hareketler.map(h=>[h.tarih,h.belge,h.malKod,h.malAd,h.tur,h.miktar,h.birim,h.personel,h.depo||'',h.raf||'',h.konum||h.teknikBina||'',h.teknikBina||'',h.alanKisi,h.notlar]) },
+    serino: { headers:['Malzeme Kodu','Malzeme','Seri No','Durum','Konum','Teknik Bina','Alan Kişi','Versiyon','Bakım Sayısı'], getData:()=>DB.serino.map(s=>[s.malKod,s.malAd,s.seriNo,s.durum,s.konum,s.teknikBina,s.alanKisi,s.versiyon,s.bakimSayisi]) },
+    arizali: { headers:['Malzeme','Seri No','Arıza Tarihi','Gönderim','Açıklama','Tamir Merkezi','Karar','Karar Tarihi'], getData:()=>DB.arizali.map(a=>[a.malAd,a.seriNo,a.arizaTarih,a.gonderimTarih,a.aciklama,a.tamirMerkezi,a.karar,a.kararTarih]) },
+    kalibrasyon: { headers:['Malzeme','Seri No','Bakım Türü','Periyot','Son Bakım','Sorumlu'], getData:()=>DB.kalibrasyon.map(k=>[k.malAd,k.seriNo,k.bakimTur,k.periyot+' ay',k.sonBakim,k.sorumlu]) },
+    log: { headers:['Tarih','Kullanıcı','Modül','İşlem','Detay'], getData:()=>DB.log.map(l=>[l.tarih,l.kullanici,l.modul,l.islem,l.detay]) },
+    personelFormu: { headers:['Ad','Soyad','Sicil No','Ünvan','Birim','Telefon','E-posta','Görev'], getData:()=>DB.personelFormu.map(p=>[p.ad,p.soyad,p.sicilNo,p.unvan,p.birim,p.telefon,p.eposta,p.gorev]) }
+  };
+  
+  const config = tableConfigs[tbl];
+  if(!config){ showToast('❌ Tablo bulunamadı','error'); return; }
+  
+  const data = [config.headers, ...config.getData()];
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  
+  // Sütun genişliklerini ayarla
+  ws['!cols'] = config.headers.map(h => ({wch: Math.max(h.length, 12)}));
+  
+  XLSX.utils.book_append_sheet(wb, ws, tbl.charAt(0).toUpperCase()+tbl.slice(1));
+  XLSX.writeFile(wb, `TCDD_${tbl}_${today()}.xlsx`);
+  showToast(`📥 ${tbl} Excel olarak indirildi`,'success');
+  addLog('Export','Excel İndir',`${tbl} tablosu indirildi`);
+}
+
+function exportAllExcel(){
+  const wb = XLSX.utils.book_new();
+  
+  // Tüm tabloları tek Excel'e ekle
+  const tables = ['envanter','hareketler','serino','arizali','kalibrasyon','personelFormu','log'];
+  tables.forEach(tbl => {
+    try{
+      const tableConfigs = {
+        envanter: { name:'Envanter', headers:['Kod','Ad','Kategori','Konum','Birim','Min','Max','Stok','Durum','Teknik Bina','Sorumlu'], getData:()=>DB.envanter.map(e=>[e.kod,e.ad,e.kategori,e.konum,e.birim,e.min,e.max,e.stok,getStokDurum(e.stok,e.min).label.replace(/[✅⚠️⛔]/g,'').trim(),e.teknikBina,e.sorumluKisi]) },
+        hareketler: { name:'Hareketler', headers:['Tarih','Belge','Malzeme','Tür','Miktar','Personel','Depo','Raf','Konum','Alan Kişi'], getData:()=>DB.hareketler.map(h=>[h.tarih,h.belge,h.malAd,h.tur,h.miktar,h.personel,h.depo||'',h.raf||'',h.konum||h.teknikBina||'',h.alanKisi]) },
+        serino: { name:'Seri No', headers:['Malzeme','Seri No','Durum','Konum','Teknik Bina','Alan Kişi'], getData:()=>DB.serino.map(s=>[s.malAd,s.seriNo,s.durum,s.konum,s.teknikBina,s.alanKisi]) },
+        arizali: { name:'Arızalı', headers:['Malzeme','Seri No','Arıza Tarihi','Karar','Tamir Merkezi'], getData:()=>DB.arizali.map(a=>[a.malAd,a.seriNo,a.arizaTarih,a.karar,a.tamirMerkezi]) },
+        kalibrasyon: { name:'Kalibrasyon', headers:['Malzeme','Seri No','Bakım Türü','Son Bakım','Sorumlu'], getData:()=>DB.kalibrasyon.map(k=>[k.malAd,k.seriNo,k.bakimTur,k.sonBakim,k.sorumlu]) },
+        personelFormu: { name:'Personel', headers:['Ad','Soyad','Sicil','Ünvan','Birim','Telefon'], getData:()=>DB.personelFormu.map(p=>[p.ad,p.soyad,p.sicilNo,p.unvan,p.birim,p.telefon]) },
+        log: { name:'Log', headers:['Tarih','Kullanıcı','Modül','İşlem','Detay'], getData:()=>DB.log.slice(0,500).map(l=>[l.tarih,l.kullanici,l.modul,l.islem,l.detay]) }
+      };
+      const c = tableConfigs[tbl]; if(!c) return;
+      const data = [c.headers, ...c.getData()];
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      ws['!cols'] = c.headers.map(h => ({wch:Math.max(h.length,12)}));
+      XLSX.utils.book_append_sheet(wb, ws, c.name);
+    }catch(e){ console.warn('Export hatası:',tbl,e); }
+  });
+  
+  XLSX.writeFile(wb, `TCDD_TumVeriler_${today()}.xlsx`);
+  showToast('📊 Tüm veriler Excel olarak indirildi','success');
+  addLog('Export','Toplu Excel',`Tüm veriler indirildi`);
+}
+
+function exportAllToJSON(){
+  const blob = new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`TCDD_Depo_Yedek_${today()}.json`; a.click();
+  showToast('📤 JSON yedek indirildi','success');
+  addLog('Export','JSON Yedek','Tüm veri JSON indirildi');
+}
+
+function downloadXmlBackup(){
+  window.open(API_BASE + '?action=download_xml', '_blank');
+  showToast('📥 XML yedek indiriliyor','success');
+  addLog('Yedekleme','XML Yedek İndir','Sunucudaki tcdd_depo_data.xml indirildi');
+}
+
+function triggerXmlImport(){
+  if(!can('settings')){ showToast('⛔ XML yedek yükleme yetkiniz yok','error'); return; }
+  var input = document.getElementById('xmlFileInput');
+  if(input) input.click();
+}
+
+async function handleXmlImport(e){
+  var file = e && e.target ? e.target.files[0] : null;
+  if(!file) return;
+  if(!can('settings')){
+    showToast('⛔ XML yedek yükleme yetkiniz yok','error');
+    e.target.value = '';
+    return;
+  }
+  if(!/\.xml$/i.test(file.name)){
+    showToast('❌ Lütfen .xml uzantılı bir dosya seçin','error');
+    e.target.value = '';
+    return;
+  }
+  if(!confirm('⚠️ Mevcut sunucu verisi XML yedeği ile değiştirilecek. Devam etmek istiyor musunuz?')){
+    e.target.value = '';
+    return;
+  }
+  try{
+    updateSyncStatus('syncing');
+    var formData = new FormData();
+    formData.append('file', file);
+    var res = await fetch(API_BASE + '?action=upload_xml', {
+      method: 'POST',
+      body: formData,
+      credentials: 'same-origin'
+    });
+    var data = await res.json().catch(function(){ return {success:false,error:'Sunucu JSON cevabi okunamadi'}; });
+    if(!res.ok || !data || data.success === false){
+      throw new Error((data && (data.error || data.message)) || ('HTTP ' + res.status));
+    }
+    await loadFromServer();
+    renderYedekleme();
+    navigate('dashboard');
+    showToast('✅ XML yedek başarıyla yüklendi','success');
+    addLog('Yedekleme','XML Yedek Yükle', file.name + ' yuklendi');
+    saveToLS();
+  }catch(err){
+    updateSyncStatus('error');
+    showToast('❌ XML yedek yükleme hatası: ' + (err.message || err), 'error');
+  }finally{
+    if(e && e.target) e.target.value = '';
+  }
+}
+
+function importFromJSON(){ document.getElementById('jsonFileInput').click(); }
+function handleJSONImport(e){
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader(); r.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      const validKeys = Object.keys(DB);
+      const matchedKeys = Object.keys(data).filter(k => validKeys.includes(k));
+      if(matchedKeys.length === 0){ showToast('❌ Geçerli veri bulunamadı','error'); return; }
+      if(confirm(`${matchedKeys.length} modül yüklenecek: ${matchedKeys.join(', ')}. Mevcut verinin üzerine yazılacak. Devam?`)){
+        matchedKeys.forEach(k => { DB[k] = data[k]; });
+        saveToLS(); navigate('dashboard');
+        showToast('✅ Veri başarıyla yüklendi','success');
+        addLog('Sistem','JSON İçe Aktarma',`${file.name} yüklendi`);
+      }
+    }catch(err){ showToast('❌ Geçersiz JSON dosyası','error'); }
+  }; r.readAsText(file);
+  e.target.value = '';
+}
+
+function triggerExcelImport(){
+  if(!can('settings') && !can('edit')){ showToast('⛔ Excel yükleme yetkiniz yok','error'); return; }
+  var input = document.getElementById('excelFileInput');
+  if(input) input.click();
+}
+
+function barkodManualSearch(q){
+  const el = document.getElementById('barkodManualResult');
+  if(!el) return;
+  if(!q || q.trim().length < 1){ el.innerHTML = ''; return; }
+  const query = q.trim().toLowerCase();
+  
+  // Tüm kaynaklarda ara: envanter (barkod, kod, ad), serino (seriNo, barkod, malAd, alanKisi), hareketler (alan kişi)
+  const envResults = DB.envanter.filter(e =>
+    (e.kod||'').toLowerCase().includes(query) ||
+    (e.barkod||'').toLowerCase().includes(query) ||
+    (e.ad||'').toLowerCase().includes(query) ||
+    (e.sorumluKisi||'').toLowerCase().includes(query)
+  );
+  const snResults = DB.serino.filter(s =>
+    (s.seriNo||'').toLowerCase().includes(query) ||
+    (s.barkod||'').toLowerCase().includes(query) ||
+    (s.malAd||'').toLowerCase().includes(query) ||
+    (s.alanKisi||'').toLowerCase().includes(query) ||
+    (s.malKod||'').toLowerCase().includes(query)
+  );
+  const harResults = DB.hareketler.filter(h =>
+    (h.alanKisi||'').toLowerCase().includes(query) ||
+    (h.malKod||'').toLowerCase().includes(query) ||
+    (h.malAd||'').toLowerCase().includes(query)
+  ).slice(0, 5);
+
+  if(envResults.length === 0 && snResults.length === 0 && harResults.length === 0){
+    el.innerHTML = `<div class="alert alert-yellow"><span>⚠️</span><span>"${esc(q)}" ile eşleşen kayıt bulunamadı.</span></div>`;
+    return;
+  }
+
+  let html = '';
+
+  if(envResults.length > 0){
+    html += `<div style="margin-bottom:12px"><strong style="color:var(--tcdd-blue)">📦 Envanter (${envResults.length} kayıt)</strong></div>`;
+    envResults.slice(0,5).forEach(e => {
+      const d = getStokDurum(e.stok, e.min);
+      const arizalar = DB.arizali.filter(a=>a.malKod===e.kod && (a.karar==='Tamirde'||a.karar==='Parça Bekliyor'));
+      const bakimlar = DB.kalibrasyon.filter(k=>k.malKod===e.kod);
+      const snler = DB.serino.filter(s=>s.malKod===e.kod);
+      html += `<div class="scan-result-card" style="margin-bottom:10px">
+        <div style="font-weight:700;font-size:14px;margin-bottom:8px;color:#15803d">📦 ${esc(e.ad)}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+          <div><strong>Kod/Barkod:</strong> <code>${esc(e.kod)}</code></div>
+          <div><strong>Kategori:</strong> ${esc(e.kategori)}</div>
+          <div><strong>Stok:</strong> <span style="font-weight:700;color:${e.stok<=0?'var(--red)':e.stok<=e.min?'#d97706':'var(--green)'}">${e.stok} ${esc(e.birim)}</span></div>
+          <div><strong>Durum:</strong> <span class="badge ${d.cls}">${d.label}</span></div>
+          <div style="grid-column:span 2;padding:6px;background:rgba(26,58,107,.06);border-radius:6px">
+            <strong>📍 Konum:</strong> ${esc(e.konum||'–')}<br>
+            <strong>👤 Sorumlu:</strong> ${esc(e.sorumluKisi||'–')}<br>
+            <strong>🏷️ Kritiklik:</strong> ${getKritiklik(e.kritiklik)}
+          </div>
+          ${snler.length>0?`<div style="grid-column:span 2"><strong>🔢 Seri No Sayısı:</strong> ${snler.length} adet (${snler.map(s=>`<code style="font-size:10px">${esc(s.seriNo)}</code>`).slice(0,3).join(', ')}${snler.length>3?'...':''})</div>`:''}
+          ${arizalar.length>0?`<div style="grid-column:span 2;color:var(--red)"><strong>🔧 Aktif Arıza:</strong> ${arizalar.map(a=>`${esc(a.seriNo)} – ${esc(a.karar)}`).join(', ')}</div>`:''}
+          ${bakimlar.length>0&&bakimlar.some(k=>{const n=new Date(k.sonBakim);n.setMonth(n.getMonth()+(k.periyot||12));return daysDiff(today(),n.toISOString().split('T')[0])<30;})?`<div style="grid-column:span 2;color:#d97706"><strong>📅 Yaklaşan Bakım var!</strong></div>`:''}
+        </div>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="navigate('envanter');document.getElementById('envSearch').value='${esc(e.kod)}';renderEnvanter()">📦 Envanter</button>
+          <button class="btn btn-secondary btn-sm" onclick="showItemQR('${esc(e.kod)}')">🏷️ QR/Barkod</button>
+        </div>
+      </div>`;
+    });
+  }
+
+  if(snResults.length > 0){
+    html += `<div style="margin:12px 0 8px"><strong style="color:var(--tcdd-blue)">🔢 Seri No Takibi (${snResults.length} kayıt)</strong></div>`;
+    snResults.slice(0,5).forEach(s => {
+      const durumCls = {Depoda:'badge-green',Sahada:'badge-blue',Arızalı:'badge-red',Hurda:'badge-gray',Tamirde:'badge-yellow'};
+      const arizaSnRecs = DB.arizali.filter(a=>a.seriNo===s.seriNo);
+      const bakimSnRecs = DB.kalibrasyon.filter(k=>k.seriNo===s.seriNo);
+      html += `<div class="scan-result-card" style="margin-bottom:10px">
+        <div style="font-weight:700;font-size:14px;margin-bottom:8px;color:#15803d">🔢 ${esc(s.malAd)}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+          <div><strong>Seri No:</strong> <code>${esc(s.seriNo)}</code></div>
+          <div><strong>Malzeme Kodu:</strong> ${esc(s.malKod)}</div>
+          <div><strong>Durum:</strong> <span class="badge ${durumCls[s.durum]||'badge-gray'}">${esc(s.durum)}</span></div>
+          <div><strong>Versiyon:</strong> ${esc(s.versiyon||'–')}</div>
+          <div style="grid-column:span 2;padding:6px;background:rgba(26,58,107,.06);border-radius:6px">
+            <strong>📍 Konum:</strong> ${esc(s.konum||'–')}<br>
+            <strong>🏗️ Yer:</strong> ${esc(s.teknikBina||'DEPO')}<br>
+            <strong>👤 Alan Kişi:</strong> ${esc(s.alanKisi||s.sorumlu||'–')}<br>
+            <strong>📅 Giriş:</strong> ${fmtDate(s.giris)}
+          </div>
+          ${arizaSnRecs.length>0?`<div style="grid-column:span 2;color:var(--red)"><strong>🔧 Arıza Geçmişi:</strong> ${arizaSnRecs.length} kayıt (${arizaSnRecs.filter(a=>a.karar==='Tamir Edildi').length} tamir edildi)</div>`:''}
+          ${bakimSnRecs.length>0?`<div style="grid-column:span 2;color:var(--green)"><strong>📅 Bakım Sayısı:</strong> ${s.bakimSayisi||0}</div>`:''}
+        </div>
+        <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="navigate('serino');document.getElementById('snSearch').value='${esc(s.seriNo)}';renderSeriNo()">🔢 Seri No'ya Git</button>
+          <button class="btn btn-secondary btn-sm" onclick="showItemQR('${esc(s.seriNo)}')">🏷️ QR/Barkod</button>
+        </div>
+      </div>`;
+    });
+  }
+
+  if(harResults.length > 0){
+    html += `<div style="margin:12px 0 8px"><strong style="color:var(--tcdd-blue)">📋 Alan Kişi Hareketleri (${harResults.length} kayıt)</strong></div>`;
+    html += `<div style="font-size:12px;background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden">`;
+    harResults.forEach(h => {
+      html += `<div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">
+        <span style="color:var(--muted)">${fmtDate(h.tarih)}</span>
+        <span><strong>${esc(h.malAd)}</strong></span>
+        <span class="badge ${h.tur==='Giriş'?'badge-green':h.tur==='Çıkış'?'badge-red':'badge-blue'}">${esc(h.tur)}</span>
+        <span>${h.miktar} ${esc(h.birim)}</span>
+        <span>👤 ${esc(h.alanKisi||'–')}</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+function handleExcelImport(e){
+  var file = e && e.target ? e.target.files[0] : null;
+  if(!file) return;
+  if(!can('settings') && !can('edit')){ showToast('⛔ Yetkiniz yok','error'); e.target.value=''; return; }
+  var r = new FileReader();
+  r.onload = function(ev){
+    try{
+      var wb = XLSX.read(ev.target.result, {type:'binary'});
+      var sheetMap = {
+        'Envanter':'envanter','Hareketler':'hareketler','Seri No':'serino',
+        'Arızalı':'arizali','Kalibrasyon':'kalibrasyon','Personel':'personelFormu'
+      };
+      var imported = 0;
+      wb.SheetNames.forEach(function(name){
+        var key = sheetMap[name];
+        if(!key) return;
+        var ws = wb.Sheets[name];
+        var rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+        if(rows.length === 0) return;
+        // Alan haritalamaları
+        var fieldMaps = {
+          envanter: function(r){ return {id:Date.now()+Math.random(),kod:r['Kod']||r['kod']||'',ad:r['Ad']||r['ad']||'',kategori:r['Kategori']||'',konum:r['Konum']||'',birim:r['Birim']||'Adet',min:Number(r['Min'])||0,max:Number(r['Max'])||0,stok:Number(r['Stok'])||0,kritiklik:r['Kritiklik']||'C',tedarikci:r['Tedarikci']||'',sonAlim:'',fiyat:Number(r['Fiyat'])||0,model:r['Model']||'',barkod:r['Kod']||r['kod']||'',teknikBina:'',notlar:r['Notlar']||''}; },
+          hareketler: function(r){ return {id:Date.now()+Math.random(),tarih:r['Tarih']||today(),belge:r['Belge']||'',malKod:r['Malzeme Kodu']||'',malAd:r['Malzeme']||'',tur:r['Tür']||'Giriş',miktar:Number(r['Miktar'])||0,birim:r['Birim']||'Adet',personel:r['Personel']||'',teknikBina:r['Konum']||'',alanKisi:r['Alan Kişi']||'',notlar:r['Notlar']||''}; },
+          serino: function(r){ return {id:Date.now()+Math.random(),malKod:r['Malzeme Kodu']||'',malAd:r['Malzeme']||'',seriNo:r['Seri No']||'',durum:r['Durum']||'Depoda',konum:r['Konum']||'',teknikBina:r['Yer/Konum']||'DEPO',alanKisi:r['Alan Kişi']||'',versiyon:r['HW/SW']||'',bakimSayisi:0,giris:today(),barkod:r['Seri No']||''}; },
+          arizali: function(r){ return {id:Date.now()+Math.random(),malKod:'',malAd:r['Malzeme']||'',seriNo:r['Seri No']||'',arizaTarih:r['Arıza Tarihi']||today(),karar:r['Karar']||'Tamirde',tamirMerkezi:r['Tamir Merkezi']||'',aciklama:r['Aciklama']||'',notlar:'',fotograflar:'',videolar:''}; },
+          kalibrasyon: function(r){ return {id:Date.now()+Math.random(),malKod:'',malAd:r['Malzeme']||'',seriNo:r['Seri No']||'',bakimTur:r['Bakım Türü']||'',periyot:Number(r['Periyot'])||12,sonBakim:r['Son Bakım']||today(),sorumlu:r['Sorumlu']||'',notlar:''}; },
+          personelFormu: function(r){ return {id:Date.now()+Math.random(),ad:r['Ad']||'',soyad:r['Soyad']||'',sicilNo:r['Sicil']||'',unvan:r['Ünvan']||'',birim:r['Birim']||'',telefon:r['Telefon']||'',eposta:'',gorev:'',notlar:''}; }
+        };
+        var mapper = fieldMaps[key];
+        if(!mapper) return;
+        var newRecs = rows.map(mapper).filter(function(r){ return r.kod||r.seriNo||r.ad||r.malAd; });
+        if(newRecs.length > 0){
+          DB[key] = DB[key].concat(newRecs);
+          imported += newRecs.length;
+        }
+      });
+      if(imported > 0){
+        saveToLS();
+        navigate(currentPage||'dashboard');
+        showToast('✅ ' + imported + ' kayıt Excel\'den yüklendi','success');
+        addLog('Sistem','Excel İçe Aktarma', file.name + ': ' + imported + ' kayıt');
+      } else {
+        showToast('⚠️ Excel\'de tanınan sayfa veya veri bulunamadı','error');
+      }
+    }catch(err){
+      showToast('❌ Excel okuma hatası: ' + err.message,'error');
+      console.error('Excel import hatasi:', err);
+    }
+  };
+  r.readAsBinaryString(file);
+  e.target.value = '';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  UYGULAMA BAŞLATMA - TÜM FONKSİYONLAR TANIMLANDIKTAN SONRA
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+//  GOOGLE APPS SCRIPT SANDBOX UYUMU
+//  eval() GAS'ta CSP tarafından bloke edilebilir.
+//  Tüm global fonksiyonları doğrudan window'a bağla.
+// ═══════════════════════════════════════════════════════════════
+try {
+  window.doLogin               = doLogin;
+  window.doLogout              = doLogout;
+  window.navigate              = navigate;
+  window.navigateWithFilter    = navigateWithFilter;
+  window.toggleSidebar         = toggleSidebar;
+  window.toggleDarkMode        = toggleDarkMode;
+  window.openModal             = openModal;
+  window.closeModal            = closeModal;
+  window.saveModal             = saveModal;
+  window.deleteRecord          = deleteRecord;
+  window.openEnvanterModal     = openEnvanterModal;
+  window.renderEnvanter        = renderEnvanter;
+  window.openHarModal          = openHarModal;
+  window.renderHareketler      = renderHareketler;
+  window.autoFillBirim         = autoFillBirim;
+  window.addDepoZone           = addDepoZone;
+  window.addRafToDepo          = addRafToDepo;
+  window.removeDepo            = removeDepo;
+  window.showShelf             = showShelf;
+  window.openSeriNoModal       = openSeriNoModal;
+  window.renderSeriNo          = renderSeriNo;
+  window.openArizaModal        = openArizaModal;
+  window.renderArizali         = renderArizali;
+  window.openKalModal          = openKalModal;
+  window.renderKalibrasyon     = renderKalibrasyon;
+  window.bakimYapildi          = bakimYapildi;
+  window.openPersonelModal     = openPersonelModal;
+  window.renderPersonelFormu   = renderPersonelFormu;
+  window.openUserModal         = openUserModal;
+  window.renderKullanicilar    = renderKullanicilar;
+  window.renderAyarlar         = renderAyarlar;
+  window.addListItem           = addListItem;
+  window.removeListItem        = removeListItem;
+  window.addTedarikci          = addTedarikci;
+  window.renderLog             = renderLog;
+  window.clearLog              = clearLog;
+  window.renderYedekleme       = renderYedekleme;
+  window.renderGrafikler       = renderGrafikler;
+  window.renderBarkod          = renderBarkod;
+  window.startScan             = startScan;
+  window.stopScan              = stopScan;
+  window.closeScanModal        = closeScanModal;
+  window.openQuickScan         = openQuickScan;
+  window.generateCodes         = generateCodes;
+  window.generateManualCodes   = generateManualCodes;
+  window.showItemQR            = showItemQR;
+  window.printCodes            = printCodes;
+  window.printModalCodes       = printModalCodes;
+  window.downloadQR            = downloadQR;
+  window.exportTable           = exportTable;
+  window.exportAllExcel        = exportAllExcel;
+  window.exportAllToJSON       = exportAllToJSON;
+  window.downloadXmlBackup     = downloadXmlBackup;
+  window.triggerXmlImport      = triggerXmlImport;
+  window.handleXmlImport       = handleXmlImport;
+  window.importFromJSON        = importFromJSON;
+  window.handleJSONImport      = handleJSONImport;
+  window.triggerExcelImport    = triggerExcelImport;
+  window.handleExcelImport     = handleExcelImport;
+  window.arizaAutoFill         = arizaAutoFill;
+  window.kalAutoFill           = kalAutoFill;
+  window.barkodManualSearch    = barkodManualSearch;
+  window.showToast             = showToast;
+  window.renderDashboard       = renderDashboard;
+  window.processScanResult     = processScanResult;
+  window.generateCodeDisplay   = generateCodeDisplay;
+  // Mevcutların altına ekleyin:
+  
+  window.tekrarTara             = tekrarTara;
+  window.harDepoChange          = harDepoChange;
+  window.loadFromServer        = loadFromServer;
+  window.syncToServer         = syncToServer;
+  
+} catch(e) {
+  console.warn('window binding hatasi:', e);
+}
+
+(function initApp(){
+  try {
+  // Verileri yükle
+  var hasLS = loadFromLS();
+  if(!hasLS) loadDemoData();
+
+  // Kullanıcılar yoksa varsayılanları ekle
+  if(!DB.kullanicilar || DB.kullanicilar.length === 0){
+    DB.kullanicilar = DEFAULT_USERS.slice();
+  }
+
+  // Karanlık modu başlat
+  initDarkMode();
+
+  // Varsa oturumu geri yukle (F5 sonrası çıkış olmaması için)
+  restoreSession();
+
+  // Sunucu Excel API'den yüklemeyi dene
+  try { loadFromServer(); } catch(e){ console.warn('Excel baslangic hatasi:', e); }
+
+  // Giriş alanına odaklan
+  var loginInput = document.getElementById('loginUser');
+  if(loginInput) loginInput.focus();
+
+  // Mobilde sidebar'ı kapalı başlat
+  if(window.innerWidth <= 768){
+    var sidebar = document.getElementById('sidebar');
+    if(sidebar) sidebar.classList.add('collapsed');
+  }
+
+  // Otomatik günlük yedekleme
+  setupAutoBackup();
+  } catch(e) {
+    console.error('initApp hatasi:', e);
+  }
+})();
+function restoreSession(){
+  try{
+    const raw = localStorage.getItem('tcdd_user');
+    if(!raw) return;
+
+    const savedUser = JSON.parse(raw);
+    if(!savedUser || !savedUser.id) return;
+
+    const liveUser = (DB.kullanicilar || []).find(function(u){
+      return String(u.id) === String(savedUser.id) && u.active !== false;
+    });
+
+    currentUser = liveUser
+      ? {
+          id: liveUser.id,
+          user: liveUser.user,
+          name: liveUser.name,
+          role: liveUser.role,
+          access: liveUser.access,
+          active: liveUser.active !== false,
+          lastLogin: liveUser.lastLogin || savedUser.lastLogin || ''
+        }
+      : savedUser;
+
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('app').classList.add('visible');
+
+    document.getElementById('sidebarAvatar').textContent = (currentUser.name || '?').charAt(0).toUpperCase();
+    document.getElementById('sidebarName').textContent = currentUser.name || 'Kullanıcı';
+    document.getElementById('sidebarRole').textContent = currentUser.role || 'Rol';
+
+    document.getElementById('usersNav').style.display = can('users') ? '' : 'none';
+    var ayarlarNav = document.querySelector('[data-page="ayarlar"]');
+    if(ayarlarNav) ayarlarNav.style.display = can('settings') ? '' : 'none';
+    var addDepoBtn = document.getElementById('addDepoBtn');
+    if(addDepoBtn) addDepoBtn.style.display = can('edit') ? 'inline-flex' : 'none';
+
+    navigate(currentPage || 'dashboard');
+  }catch(e){
+    localStorage.removeItem('tcdd_user');
+  }
+}
+</script>
+</body>
+</html>
